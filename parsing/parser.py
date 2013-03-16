@@ -46,8 +46,6 @@ def query_post_sort(*args, **kwargs):
 
 def recursively_quantify(query):
 
-	print query, type(query), type(query) == types.ListType
-
 	if type(query) != types.ListType:
 		return query 
 
