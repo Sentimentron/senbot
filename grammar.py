@@ -3,6 +3,7 @@
 # Pyparsing query grammar for Sentimentron
 
 import string 
+import types 
 
 from pyparsing import *
 
@@ -49,8 +50,8 @@ class QueryKeywordLiteralModifier(QueryKeywordModifier):
 
 class QueryContainer(object):
 
-	def __init__(self):
-		self._list = []
+	def __init__(self, _list=[]):
+		self._list = _list
 
 	def __len__(self):
 		return len(self._list)
@@ -63,19 +64,19 @@ class QueryContainer(object):
 		return reversed(self._list)
 
 	def __repr__(self):
-		return "%s(%s)" % (type(self), self)
-
-	def __str__(self):
-		return "%s(%s)" % (type(self), self)
+		return "%s(%s)" % (type(self), self._list)
 
 class QueryJoinOperator(QueryContainer):
-	pass 
+	def __repr__(self):
+		return "%s(%s)" % ("QueryJoinOperator", self._list)
 
 class QueryIntersection(QueryJoinOperator):
-	pass 
+	def __repr__(self):
+		return "%s(%s)" % ("QueryIntersection", self._list)
 
 class QueryUnion(QueryJoinOperator):
-	pass 
+	def __repr__(self):
+		return "%s(%s)" % ("QueryUnion", self._list)
 
 class Query(QueryContainer):
 	pass 
@@ -106,17 +107,37 @@ or_condition   = Literal("OR")
 join_condition = and_condition | or_condition
 query_run      = query_element + join_condition
 subquery       = Suppress(Literal('('))+query+Suppress(Literal(')'))
-query         << Or([Group((query_run + query)), query_element, (query_element + query), subquery, Group(subquery + Optional(join_condition) +  query)])
+query         << Or([Group(query_run + query), query_element, query_element + query, subquery, Group(subquery + Optional(join_condition) +  query)])
 
-def parse_query(s, l, tokens):
-	cur = QueryIntersection()
-	for token in tokens:
-		if token == "AND":
-			jc = QueryIntersection()
-			cur.add(jc)
-			cur = jc 
-		elif token == "OR":
-			jc = QueryUnion
+def query_post_sort(*args, **kwargs):
+	raw_input(args)
+	if len(args) == 0:
+		return 
+
+	s, l, t = args
+	return t.sort(key = lambda x: type(x))
+
+#query.setParseAction(query_post_sort)
+
+def recursively_quantify(query):
+
+	print query, type(query), type(query) == types.ListType
+
+	if type(query) != types.ListType:
+		return query 
+
+	contains_and = "AND" in query 
+	contains_or  = "OR"  in query 
+
+	if contains_and and contains_or:
+		raise ValueError("Ambiguous quantifiers")
+
+	if contains_or:
+		return QueryUnion([recursively_quantify(i) for i in query if i != "OR"])
+	if contains_and:
+		return QueryIntersection([recursively_quantify(i) for i in query if i != "AND"])
+	return QueryJoinOperator([recursively_quantify(i) for i in query if i != "AND" and i != "OR"])
+
 
 if __name__ == "__main__":
 
@@ -141,4 +162,4 @@ if __name__ == "__main__":
 	"Barack Obama AND John McCain foxnews.com",
 	"(Barack OR Obama) AND (John AND McCain) foxnews.com"]
 	for c,f in enumerate([query.parseString(x) for x in queries]):
-		print c, f
+		print c, recursively_quantify(f.asList())
