@@ -16,7 +16,6 @@ class TrieNode(object):
 
 		node = self 
 		for char in key:
-			print node, repr(char)
 			if char not in node._children:
 				return None 
 			else:
@@ -60,7 +59,6 @@ class WhitespaceExpansionTrieNode(TrieNode):
 
 		for perm in get_all_combinations(subwords):
 			subword = ' '.join(perm)
-			print subword
 			try:
 				super(WhitespaceExpansionTrieNode, self).build(subword, word)
 			except Exception as ex:
