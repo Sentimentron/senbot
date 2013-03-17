@@ -18,7 +18,8 @@ potential_keywrd= raw_keyword | quoted_keyword
 literal_modifier= Literal("+")
 exclude_modifier= Literal("-")
 keyword_modifier= literal_modifier | exclude_modifier
-keyword         = Optional(keyword_modifier) + potential_keywrd
+modified_keyword= Group(keyword_modifier + potential_keywrd)
+keyword         = modified_keyword | potential_keywrd
 
 potential_keywrd.setParseAction(lambda s,l,t: QueryKeyword(s,l,t))
 literal_modifier.setParseAction(lambda s,l,t: QueryKeywordLiteralModifier())

@@ -2,21 +2,37 @@
 
 from parsing.models import *
 from parsing.parser import *
-from whitespace import test_whitespace_kw_expand 
 from core import recursive_map
 from celery.result import AsyncResult
 from celery.exceptions import TimeoutError
+from tasks import test_kw_id_resolve, test_whitespace_kw_expand
+import types
 queries = ["Barack", "McCain",
 	"+Barack AND McCain foxnews.com",
 	"+Barack AND -\"McCain Oven Chips\" foxnews.com"
 ]
 
 def expand_keyword(keyword):
-	print "EXPAND",type(keyword), type(keyword) == QueryKeyword
 	if type(keyword) != QueryKeyword:
 		return keyword
 	kw = keyword.keyword
 	return test_whitespace_kw_expand.delay(kw)
+
+def resolve_keyword(keyword):
+	kw = None
+	if type(keyword) == type(set([])):
+		return [resolve_keyword(i) for i in keyword]
+	if type(keyword) == types.StringType:
+		if keyword == "AND" or keyword == "OR":
+			return keyword 
+		kw = keyword
+	elif type(keyword) == QueryKeyword:
+		kw = keyword.keyword 
+	else:
+		return keyword 
+
+	assert kw != None 
+	return test_kw_id_resolve.delay(kw)
 
 def resolve(result):
 	print "RESOLVE",type(result), isinstance(result, AsyncResult)
@@ -34,7 +50,11 @@ for c, q in enumerate(queries):
 	print c
 	print "PARSED", parsed
 	
+	# Got a problem: ignores literal keyword modifiers
 	inter = recursive_map(parsed, lambda x: expand_keyword(x))
 	print inter 
 	inter = recursive_map(inter, lambda x: resolve(x))
-	raw_input(inter)
+	print inter
+	inter = recursive_map(inter, lambda x: resolve_keyword(x))
+	inter = recursive_map(inter, lambda x: resolve(x))
+	print inter 

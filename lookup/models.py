@@ -12,6 +12,9 @@ class TrieNode(object):
 	def add_value(self, value):
 		self.values.add(value)
 
+	def get_values(self):
+		return self.values
+
 	def find(self, key):
 
 		node = self 
@@ -21,14 +24,15 @@ class TrieNode(object):
 			else:
 				node = node._children[char]
 
-		return node.values
+		return node.get_values()
 
 	def build(self, key, value):
 
 		node = self 
 		for char in key:
 			if char not in node._children:
-				node._children[char] = TrieNode()
+				tn = self.__class__
+				node._children[char] = tn()
 			node = node._children[char]
 
 		node.add_value(value)
@@ -39,6 +43,23 @@ class TrieNode(object):
 		else:
 			print_item = self._children
 		return "TrieNode(%s)" % (print_item,)
+
+class UnambiguousTrieNode(TrieNode):
+
+	def __init__(self):
+		self._children = {}
+		self.value = None 
+
+	def add_value(self, value):
+		if self.value != None:
+			raise Exception("Already has a value!")
+		self.value = value 
+
+	def get_values(self):
+		return self.value 
+
+	def __repr__(self):
+		return "TrieNode(%s)" % (self.value)
 
 class WhitespaceExpansionTrieNode(TrieNode):
 
