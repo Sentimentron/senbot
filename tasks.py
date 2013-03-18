@@ -24,7 +24,7 @@ class WhiteSpaceKWExpand(Task):
     def run(self, keyword):
         return self.tree.find(keyword)
 
-class ProdWhiteSpaceKWExpand(object):
+class ProdWhiteSpaceKWExpand(WhiteSpaceKWExpand):
 
     def __init__(self):
 
@@ -35,9 +35,7 @@ class ProdWhiteSpaceKWExpand(object):
         session = Session(bind=engine)
 
         # Query for keywords
-        for k in session.query(Keyword):
-            if ' ' not in k.word:
-                continue 
+        for k in session.query(Keyword.word.like("% %")):
             logging.debug(k.word)
             self.build(k.word)
         
@@ -123,4 +121,3 @@ phrase_match_keyword_id   = registry.tasks[PhraseMatchFromKeyword.name]
 phrase_from_document_id   = registry.tasks[GetPhrasesFromDocID.name]
 
 whitespace_kw_expand = registry.tasks[ProdWhiteSpaceKWExpand.name]
-whitespace_kw_expand.delay("Obama")
