@@ -71,8 +71,8 @@ class WhitespaceExpansionTrieNode(object):
 
     def _get_internal_value(self, word):
         if word not in self._words:
-            self._words[word] = self.size
-            self.size += 1
+            self._words[word] = self._size
+            self._size += 1
         else:
             return self._words[word]
 
