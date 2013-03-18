@@ -3,7 +3,7 @@
 from celery import Task, registry
 from core import get_celery, get_database_engine_string
 from lookup.models import WhitespaceExpansionTrieNode, UnambiguousTrieNode
-from models import Keyword, KeywordIncidence 
+from models import Keyword, KeywordAdjacency, KeywordIncidence 
 from sqlalchemy import create_engine
 from sqlalchemy.exc import *
 from sqlalchemy.orm import * 
@@ -74,20 +74,52 @@ class TestKWIdentityResolve(IdentityResolve):
         for word, _id in self.KEYWORD_IDENTITIES:
             self.tree.build(word, _id)
 
-class DocumentMatchFromKeywod(Task):
+class DatabaseTask(Task):
 
     def __init__(self):
-        self.engine = core.get_database_engine_string()
+        self.engine = get_database_engine_string()
         self.conn   = create_engine(self.engine)
+
+class DocumentMatchFromKeyword(DatabaseTask):
 
     def run(self, keyword_id):
         session = Session(bind=self.conn)
-        it = session.query(KeywordIncidence)
+        ret = set([])
+        it = session.query(KeywordAdjacency).filter_by(key1_id = keyword_id)
+        for thing in it:
+            ret.add(thing.doc_id)
 
+        return ret 
 
+class PhraseMatchFromKeyword(DatabaseTask):
+
+    def run(self, keyword_id):
+        session = Session(bind=self.conn)
+        ret = set([])
+        it  = session.query(KeywordIncidence).filter_by(keyword_id = keyword_id)
+        for thing in it:
+            ret.add(thing.phrase_id)
+
+        return ret 
+
+class GetPhrasesFromDocID(DatabaseTask):
+
+    def run(self, document_id):
+        session = Session(bind=self.conn)
+        ret     = set([])
+        doc     = session.query(Document).get(document_id)
+        
+        for sentence in doc.sentences:
+            for phrase in sentence.phrases:
+                ret.add(phrase)
+
+        return ret 
 
 test_kw_id_resolve = registry.tasks[TestKWIdentityResolve.name]
 test_whitespace_kw_expand = registry.tasks[TestWhiteSpaceKWExpand.name]
+document_match_keyword_id = registry.tasks[DocumentMatchFromKeyword.name]
+phrase_match_keyword_id   = registry.tasks[PhraseMatchFromKeyword.name]
+phrase_from_document_id   = registry.tasks[GetPhrasesFromDocID.name]
 
 test_kw_id_resolve.delay("")
 test_whitespace_kw_expand.delay("")
