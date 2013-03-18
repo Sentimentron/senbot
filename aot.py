@@ -16,20 +16,20 @@ import sys
 
 class CachableItem(object):
 
-	NAME = "cache.pickle"
+    NAME = "cache.pickle"
 
-	def __init__(self):
-		pass 
+    def __init__(self):
+        pass 
 
-	def pickle(self, filename=None):
-		pass
+    def pickle(self, filename=None):
+        pass
 
 class WhiteSpaceCache(CachableItem):
-	
-	NAME="whitespace.pickle"
+    
+    NAME="whitespace.pickle"
 
-	def __init__(self):
-		self.tree = WhitespaceExpansionTrieNode()
+    def __init__(self):
+        self.tree = WhitespaceExpansionTrieNode()
 
         # Database connection
         engine = get_database_engine_string()
@@ -46,14 +46,14 @@ class WhiteSpaceCache(CachableItem):
             self.tree.build(word)
 
     def pickle(self, filename = None):
-    	if filename is None:
-    		filename = self.NAME 
+        if filename is None:
+            filename = self.NAME 
 
-    	fp = open(filename, 'w')
-    	pickle.dump(self.tree, fp)
+        fp = open(filename, 'w')
+        pickle.dump(self.tree, fp)
 
  if __name__ == "__main__":
 
- 	if "--whitespace" in sys.argv:
- 		p = WhiteSpaceCache()
- 		p.pickle()
+    if "--whitespace" in sys.argv:
+        p = WhiteSpaceCache()
+        p.pickle()
