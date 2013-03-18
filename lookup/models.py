@@ -87,6 +87,7 @@ class WhitespaceExpansionTrieNode(object):
 
     def find(self, key):
         node = self._structure 
+        key = key.lower()
         for char in key:
             if char not in node:
                 return None 
