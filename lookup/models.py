@@ -70,12 +70,9 @@ class WhitespaceExpansionTrieNode(object):
         self._structure = {} 
 
     def _get_internal_value(self, word):
-        if word not in self._words:
-            self._size += 1
-            self._words[word] = self._size
-            return self._size
-        else:
-            return self._words[word]
+        self._size += 1 
+        self._words[self._size] = word 
+        return self._size 
 
     def _build_internal_structure(self, word, val):
         node = self._structure
@@ -99,7 +96,15 @@ class WhitespaceExpansionTrieNode(object):
         if '_VALUES' not in node:
             return None 
 
-        return node['_VALUES']
+        values = node['_VALUES']
+        if values is None:
+            return None 
+
+        ret = set([])
+        for i in values:
+            ret.append(self._words[i])
+
+        return ret
 
     def build(self, word):
         import itertools
