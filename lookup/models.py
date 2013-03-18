@@ -78,8 +78,7 @@ class WhitespaceExpansionTrieNode(TrieNode):
 
 		subwords = word.split(' ')
 
-		for perm in get_all_combinations(subwords):
-			subword = ' '.join(perm)
+		for subword in subwords:
 			try:
 				super(WhitespaceExpansionTrieNode, self).build(subword, word)
 			except Exception as ex:
