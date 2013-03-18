@@ -115,8 +115,7 @@ class WhitespaceExpansionTrieNode(object):
 
 		subwords = word.split(' ')
 
-		for perm in get_all_combinations(subwords):
-			subword = ' '.join(perm)
+		for subword in subwords:
 			self._build_internal_structure(self, subword, _id)
 
 class CaseInsensitiveTrieNode(TrieNode):
