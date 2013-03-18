@@ -40,17 +40,9 @@ class ProdWhiteSpaceKWExpand(WhiteSpaceKWExpand):
         session = Session(bind=conn)
 
         # Query for keywords
-        for k in session.query(Keyword.word.like("% %")):
-            valid = True
-            for c in k.word:
-                if c not in string.uppercase and c not in string.lowercase and c != ' ':
-                    valid = False 
-                    break 
-            valid = valid and len(set(string.uppercase)-set(k.word)) > 0
-            if not valid:
-                continue  
-
-            logging.debug(k.word)
+        for k in session.query(Keyword.word.op("regexp")("^[A-Za-z0-9 ]+$")):
+            if ' ' not in k.word:
+                continue
             self.build(k.word)
         
 
