@@ -113,7 +113,7 @@ class WhitespaceExpansionTrieNode(object):
 					yield item 
 				cur += 1
 
-		subwords = word.split(' ')
+		subwords = word.lower().split(' ')
 
 		for subword in subwords:
 			self._build_internal_structure(self, subword, _id)
