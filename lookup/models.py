@@ -96,23 +96,13 @@ class WhitespaceExpansionTrieNode(object):
         if '_VALUES' not in node:
             return None 
 
-        values = node['_VALUES']
-        if values is None:
-            return None 
-
-        ret = set([])
-        for i in values:
-            ret.append(self._words[i])
-
-        return ret
+        return node['_VALUES']
 
     def build(self, word):
         import itertools
 
         if ' ' not in word:
             raise ValueError("WhitespaceExpansionTrieNode: only supports strings with spaces")
-
-        _id = self._get_internal_value(word)
 
         def get_all_combinations(of):
             cur = 1
@@ -124,7 +114,7 @@ class WhitespaceExpansionTrieNode(object):
         subwords = word.lower().split(' ')
 
         for subword in subwords:
-            self._build_internal_structure( subword, _id)
+            self._build_internal_structure(subword, word)
 
 class CaseInsensitiveTrieNode(TrieNode):
 
