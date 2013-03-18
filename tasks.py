@@ -40,7 +40,7 @@ class ProdWhiteSpaceKWExpand(WhiteSpaceKWExpand):
         session = Session(bind=conn)
 
         # Query for keywords
-        sql = "SELECT word FROM keywords WHERE word collate latin1_general_cs REGEXP ('^([A-Z][a-z]+ ){1,2}([A-Z][a-z]+)$') ORDER BY RAND()"
+        sql = "SELECT word FROM keywords WHERE word collate latin1_general_cs REGEXP ('^([A-Z][a-z]+ ){1,2}([A-Z][a-z]+)$')"
         for word, in session.execute(sql):
             valid = True
             for c in k.word:
