@@ -42,8 +42,8 @@ class ProdWhiteSpaceKWExpand(WhiteSpaceKWExpand):
         # Query for keywords
         sql = "SELECT word FROM keywords WHERE word collate latin1_general_cs REGEXP ('^([A-Z][a-z]+ ){1,2}([A-Z][a-z]+)$')"
         for word, in session.execute(sql):
-            logging.debug(k.word)
-            self.build(k.word)
+            logging.debug(word)
+            self.build(word)
         
 
 class TestWhiteSpaceKWExpand(WhiteSpaceKWExpand):
