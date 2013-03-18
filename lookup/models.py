@@ -65,14 +65,15 @@ class UnambiguousTrieNode(TrieNode):
 class WhitespaceExpansionTrieNode(object):
 
     def __init__(self):
-        self._size  = 0
+        self._size  = -1
         self._words = {}
         self._structure = {} 
 
     def _get_internal_value(self, word):
         if word not in self._words:
-            self._words[word] = self._size
             self._size += 1
+            self._words[word] = self._size
+            return self._size
         else:
             return self._words[word]
 
@@ -118,7 +119,7 @@ class WhitespaceExpansionTrieNode(object):
         subwords = word.lower().split(' ')
 
         for subword in subwords:
-            self._build_internal_structure(subword, _id)
+            self._build_internal_structure( subword, _id)
 
 class CaseInsensitiveTrieNode(TrieNode):
 
