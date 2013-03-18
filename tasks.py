@@ -40,7 +40,8 @@ class ProdWhiteSpaceKWExpand(WhiteSpaceKWExpand):
         session = Session(bind=conn)
 
         # Query for keywords
-        for k in session.query(Keyword.word.like("% %")):
+        sql = "SELECT word FROM keywords WHERE word collate latin1_general_cs REGEXP ('^([A-Z][a-z]+ ){1,2}([A-Z][a-z]+)$') ORDER BY RAND()"
+        for word, in session.execute(sql):
             valid = True
             for c in k.word:
                 if c not in string.uppercase and c not in string.lowercase and c != ' ':
