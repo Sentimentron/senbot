@@ -52,7 +52,7 @@ class WhiteSpaceCache(CachableItem):
         fp = open(filename, 'w')
         pickle.dump(self.tree, fp)
 
- if __name__ == "__main__":
+if __name__ == "__main__":
 
     if "--whitespace" in sys.argv:
         p = WhiteSpaceCache()
