@@ -44,6 +44,9 @@ def resolve(result):
 		return None 
 
 for c, q in enumerate(queries):
+
+	if c != 2:
+		continue
 	
 	# Parse query 
 	parsed = query.parseString(q).asList()

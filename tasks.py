@@ -38,6 +38,7 @@ class ProdWhiteSpaceKWExpand(object):
         for k in session.query(Keyword):
             if ' ' not in k.word:
                 continue 
+            logging.debug(k.word)
             self.build(k.word)
         
 
@@ -121,5 +122,5 @@ document_match_keyword_id = registry.tasks[DocumentMatchFromKeyword.name]
 phrase_match_keyword_id   = registry.tasks[PhraseMatchFromKeyword.name]
 phrase_from_document_id   = registry.tasks[GetPhrasesFromDocID.name]
 
-test_kw_id_resolve.delay("")
-test_whitespace_kw_expand.delay("")
+whitespace_kw_expand = registry.tasks[ProdWhiteSpaceKWExpand.name]
+whitespace_kw_expand.delay("Obama")
