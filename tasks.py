@@ -10,6 +10,7 @@ from sqlalchemy.orm import *
 from sqlalchemy.orm.exc import *
 from sqlalchemy.orm.session import Session 
 from sqlalchemy.pool import SingletonThreadPool
+import string 
 
 import logging
 
@@ -38,6 +39,15 @@ class ProdWhiteSpaceKWExpand(object):
         for k in session.query(Keyword):
             if ' ' not in k.word:
                 continue 
+            valid = True
+            for c in k.word:
+                if c not in string.uppercase and c not in string.lowercase:
+                    valid = False 
+                    break 
+            valid = valid and len(set(string.uppercase)-set(k.word)) > 0:
+            if not valid:
+                continue  
+
             logging.debug(k.word)
             self.build(k.word)
         
