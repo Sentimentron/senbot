@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 from celery import Task, registry
+from celery.utils.log import get_task_logger
 from core import get_celery, get_database_engine_string
 from lookup.models import WhitespaceExpansionTrieNode, UnambiguousTrieNode
 from models import Keyword, KeywordAdjacency, KeywordIncidence 
@@ -10,11 +11,10 @@ from sqlalchemy.orm import *
 from sqlalchemy.orm.exc import *
 from sqlalchemy.orm.session import Session 
 from sqlalchemy.pool import SingletonThreadPool
-import string 
 import MySQLdb.cursors
+import string 
 
-
-import logging
+logging = get_task_logger(__name__)
 
 celery = get_celery()
 
@@ -43,7 +43,7 @@ class ProdWhiteSpaceKWExpand(WhiteSpaceKWExpand):
         for k in session.query(Keyword.word.like("% %")):
             valid = True
             for c in k.word:
-                if c not in string.uppercase and c not in string.lowercase:
+                if c not in string.uppercase and c not in string.lowercase and c != ' ':
                     valid = False 
                     break 
             valid = valid and len(set(string.uppercase)-set(k.word)) > 0
