@@ -5,7 +5,12 @@ from celery.utils.log import get_task_logger
 from core import get_celery, get_database_engine_string
 from lookup.models import WhitespaceExpansionTrieNode, UnambiguousTrieNode
 from models import Keyword, KeywordAdjacency, KeywordIncidence 
-
+from sqlalchemy import create_engine, MetaData
+from sqlalchemy.exc import *
+from sqlalchemy.orm import * 
+from sqlalchemy.orm.exc import *
+from sqlalchemy.orm.session import Session 
+from sqlalchemy.pool import SingletonThreadPool
 import cPickle as pickle
 import MySQLdb.cursors
 import string 
