@@ -102,7 +102,7 @@ class WhitespaceExpansionTrieNode(object):
 
         ret = set([])
         for i in values:
-            ret.append(self._words[i])
+            ret.add(self._words[i])
 
         return ret
 
