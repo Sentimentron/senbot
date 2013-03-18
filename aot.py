@@ -13,7 +13,7 @@ import MySQLdb.cursors
 import string 
 import cPickle as pickle 
 import sys
-
+import logging
 class CachableItem(object):
 
     NAME = "cache.pickle"
