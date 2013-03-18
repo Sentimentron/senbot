@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import logging
+from collections import defaultdict
 
 class TrieNode(object):
 
@@ -63,12 +64,10 @@ class UnambiguousTrieNode(TrieNode):
 
 class WhitespaceExpansionTrieNode(object):
 
-	from collections import defaultdict
-
 	def __init__(self):
 		self._size  = 0
 		self._words = {}
-		self._structure = defaultdict({}) 
+		self._structure = {} 
 
 	def _get_internal_value(self, word):
 		if word not in self._words:
@@ -80,6 +79,8 @@ class WhitespaceExpansionTrieNode(object):
 	def _build_internal_structure(self, word, val):
 		node = self._structure
 		for char in word:
+            if char not in node:
+                node[char] = {}
 			node = node[char]
 
 		if '_VALUES' not in node:

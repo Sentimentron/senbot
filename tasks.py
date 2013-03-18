@@ -31,6 +31,8 @@ class ProdWhiteSpaceKWExpand(WhiteSpaceKWExpand):
 
     def __init__(self):
 
+        self.tree = WhitespaceExpansionTrieNode()
+
         # Database connection
         engine = get_database_engine_string()
         logging.info("Using connection string '%s'" % (engine,))
@@ -43,7 +45,7 @@ class ProdWhiteSpaceKWExpand(WhiteSpaceKWExpand):
         sql = "SELECT word FROM keywords WHERE word collate latin1_general_cs REGEXP ('^([A-Z][a-z]+ ){1,2}([A-Z][a-z]+)$')"
         for word, in session.execute(sql):
             logging.debug(word)
-            self.build(word)
+            self.tree.build(word)
         
 
 class TestWhiteSpaceKWExpand(WhiteSpaceKWExpand):
