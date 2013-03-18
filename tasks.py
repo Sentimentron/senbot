@@ -40,9 +40,9 @@ class ProdWhiteSpaceKWExpand(WhiteSpaceKWExpand):
         session = Session(bind=conn)
 
         # Query for keywords
-        for k in session.query(Keyword.word.op("regexp")("^[A-Za-z0-9 ]+$")):
-            if ' ' not in k.word:
-                continue
+        sql = "SELECT word FROM keywords WHERE word collate latin1_general_cs REGEXP ('^([A-Z][a-z]+ ){1,2}([A-Z][a-z]+)$') ORDER BY RAND()"
+        for word, in session.execute(sql):
+            logging.debug(k.word)
             self.build(k.word)
         
 
