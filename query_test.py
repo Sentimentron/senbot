@@ -18,7 +18,7 @@ def expand_keyword(keyword):
 	if type(keyword) != QueryKeyword:
 		return keyword
 	kw = keyword.keyword
-	return celery.send_task("tasks.ProdWhiteSpaceKWExpand", [kw])
+	return celery.send_task("lookup.ProdWhiteSpaceKWExpand", [kw])
 
 def resolve_keyword(keyword):
 	kw = None
