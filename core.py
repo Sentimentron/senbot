@@ -65,7 +65,9 @@ def get_amqp_host():
 
 def get_celery():
 	from celery import Celery 
-	return Celery('tasks', backend='redis://%s' % (get_redis_host(),), broker='amqp://%s' % (get_amqp_host(),))
+	celery = Celery('tasks', backend='redis://%s' % (get_redis_host(),), broker='amqp://%s' % (get_amqp_host(),))
+	celery.config_from_object('celeryconfig')
+	return celery
 
 def recursive_map(iterable, func):
 	ret = []
