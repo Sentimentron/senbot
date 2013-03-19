@@ -40,7 +40,7 @@ class WhiteSpaceCache(CachableItem):
         session = Session(bind=conn)
 
         # Query for keywords
-        sql = "SELECT word FROM keywords WHERE word collate latin1_general_cs REGEXP ('^([A-Z][a-z]+ ){1,2}([A-Z][a-z]+)$')"
+        sql = "SELECT word FROM keywords WHERE word collate latin1_general_cs REGEXP ('^([A-Z](c[A-Z])?[a-z]+ ){1,2}([A-Z](c[A-Z])?[a-z]+)$')"
         for word, in session.execute(sql):
             logging.debug(word)
             self.tree.build(word)
