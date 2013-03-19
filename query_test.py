@@ -7,7 +7,7 @@ from celery.result import AsyncResult
 from celery.exceptions import TimeoutError
 import types
 
-celery = core.get_celery()
+celery = get_celery()
 
 queries = ["Barack", "McCain",
 	"+Barack AND McCain foxnews.com",
@@ -18,7 +18,7 @@ def expand_keyword(keyword):
 	if type(keyword) != QueryKeyword:
 		return keyword
 	kw = keyword.keyword
-	return celery.send_task("tasks.ProdWhiteSpaceKeywordExpand")
+	return celery.send_task("tasks.ProdWhiteSpaceKWExpand", [kw])
 
 def resolve_keyword(keyword):
 	kw = None
@@ -58,8 +58,8 @@ for c, q in enumerate(queries):
 	# Got a problem: ignores literal keyword modifiers
 	inter = recursive_map(parsed, lambda x: expand_keyword(x))
 	print inter 
-	#inter = recursive_map(inter, lambda x: resolve(x))
-	#print inter
+	inter = recursive_map(inter, lambda x: resolve(x))
+	print inter
 	#inter = recursive_map(inter, lambda x: resolve_keyword(x))
 	#inter = recursive_map(inter, lambda x: resolve(x))
 	#print inter 
