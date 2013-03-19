@@ -45,22 +45,40 @@ class TrieNode(object):
             print_item = self._children
         return "TrieNode(%s)" % (print_item,)
 
-class UnambiguousTrieNode(TrieNode):
+class UnambiguousTrieNode(object):
 
     def __init__(self):
-        self._children = {}
-        self.value = None 
+        self._words = {}
+        self._structure = {} 
 
-    def add_value(self, value):
-        if self.value != None:
-            raise Exception("Already has a value!")
-        self.value = value 
+    def _build_internal_structure(self, word, val):
+        node = self._structure
+        for char in word:
+            if char not in node:
+                node[char] = {}
+            node = node[char]
 
-    def get_values(self):
-        return self.value 
+        if '_VALUES' not in node:
+            node['_VALUES'] = None 
+        if node['_VALUES'] != None:
+            raise ValueError("Shouldn't have another value at this node")
+        node['_VALUES'] = val
 
-    def __repr__(self):
-        return "TrieNode(%s)" % (self.value)
+    def find(self, key):
+        node = self._structure 
+        for char in key:
+            if char not in node:
+                return None 
+            else:
+                node = node[char]
+
+        if '_VALUES' not in node:
+            return None 
+
+        return node['_VALUES']
+
+    def build(self, word, value):
+        self._build_internal_structure(word, value)
 
 class WhitespaceExpansionTrieNode(object):
 
