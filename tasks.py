@@ -21,6 +21,8 @@ celery = get_celery()
 
 class WhiteSpaceKWExpand(Task):
 
+    acks_late = True
+
     def __init__(self):
 
         self.tree = None 
@@ -57,6 +59,8 @@ class IdentityResolve(Task):
 
 class ProdKWIdentityResolve(Task):
 
+    acks_late = True
+
     def __init__(self):
         self.engine = get_database_engine_string()
         self.engine = create_engine(self.engine)
@@ -67,10 +71,12 @@ class ProdKWIdentityResolve(Task):
         it = session.query(Keyword).filter_by(word = keyword)
         try:
             kw = it.one()
-        except NoResultsFound:
+        except NoResultFound:
             return None 
 
-        return kw.id 
+        ret = kw.id
+        session.close()
+        return ret  
 
 class TestKWIdentityResolve(IdentityResolve):
     

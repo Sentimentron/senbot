@@ -41,7 +41,7 @@ def resolve(result):
 	if not isinstance(result, AsyncResult):
 		return result 
 	try:
-		return result.get(timeout=1)
+		return result.get()
 	except TimeoutError:
 		return None 
 
@@ -60,6 +60,6 @@ for c, q in enumerate(queries):
 	print inter 
 	inter = recursive_map(inter, lambda x: resolve(x))
 	print inter
-	#inter = recursive_map(inter, lambda x: resolve_keyword(x))
-	#inter = recursive_map(inter, lambda x: resolve(x))
-	#print inter 
+	inter = recursive_map(inter, lambda x: resolve_keyword(x))
+	inter = recursive_map(inter, lambda x: resolve(x))
+	print inter 
