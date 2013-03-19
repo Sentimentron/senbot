@@ -101,10 +101,3 @@ class GetPhrasesFromDocID(DatabaseTask):
 
         return ret 
 
-test_kw_id_resolve = registry.tasks[TestKWIdentityResolve.name]
-test_whitespace_kw_expand = registry.tasks[TestWhiteSpaceKWExpand.name]
-document_match_keyword_id = registry.tasks[DocumentMatchFromKeyword.name]
-phrase_match_keyword_id   = registry.tasks[PhraseMatchFromKeyword.name]
-phrase_from_document_id   = registry.tasks[GetPhrasesFromDocID.name]
-
-whitespace_kw_expand = registry.tasks[ProdWhiteSpaceKWExpand.name]

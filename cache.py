@@ -1,5 +1,15 @@
 #!/usr/bin/env python
 
+from celery import Task, registry
+from celery.utils.log import get_task_logger
+from core import get_celery, get_database_engine_string
+from lookup.models import WhitespaceExpansionTrieNode
+
+import cPickle as pickle
+
+logging = get_task_logger(__name__)
+celery = get_celery()
+
 class WhiteSpaceKWExpand(Task):
 
     acks_late = True

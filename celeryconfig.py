@@ -2,4 +2,4 @@
 
 from kombu import Queue
 
-CELERY_ROUTES = {'lookup.ProdWhiteSpaceKWExpand': {'queue': 'lookup'}}
+CELERY_ROUTES = {'cache.ProdWhiteSpaceKWExpand': {'queue': 'cache'}}
