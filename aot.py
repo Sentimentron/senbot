@@ -52,8 +52,35 @@ class WhiteSpaceCache(CachableItem):
         fp = open(filename, 'w')
         pickle.dump(self.tree, fp)
 
+class KeywordIdentityCache(CachableItem):
+
+    NAME="kwidentities.pickle"
+
+    def __init__(self):
+        self.tree = UnambiguousTrieNode()
+        engine = get_database_engine_string()
+        engine = create_engine(engine, encoding='utf-8', isolation_level = 'READ UNCOMMITTED', poolclass=SingletonThreadPool, echo = False, connect_args={'cursorclass': MySQLdb.cursors.SSCursor})
+        meta = MetaData(engine, reflect=True)
+        conn = engine.connect()
+        session = Session(bind=conn)
+
+        # Query for keywords
+        sql = "SELECT id, word FROM keywords WHERE word collate latin1_general_cs REGEXP ('^([A-Z][a-z]+ ){1,2}([A-Z][a-z]+)$')"
+        for _id, word in session.execute(sql):
+            self.tree.build(word, _id)
+
+    def pickle(self, filename = None):
+        if filename is None:
+            filename = self.NAME 
+
+        fp = open(filename, "w")
+        pickle.dump(self.tree, fp)
+
 if __name__ == "__main__":
 
     if "--whitespace" in sys.argv:
         p = WhiteSpaceCache()
+        p.pickle()
+    if "--identities" in sys.argv:
+        p = KeywordIdentityCache()
         p.pickle()
