@@ -34,7 +34,7 @@ def resolve_keyword(keyword):
 		return keyword 
 
 	assert kw != None 
-	return test_kw_id_resolve.delay(kw)
+	return celery.send_task("tasks.ProdKWIdentityResolve", [keyword])
 
 def resolve(result):
 	print "RESOLVE",type(result), isinstance(result, AsyncResult)

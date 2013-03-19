@@ -55,6 +55,23 @@ class IdentityResolve(Task):
     def run(self, item):
         return (item, self.tree.find(item))
 
+class ProdKWIdentityResolve(Task):
+
+    def __init__(self):
+        self.engine = get_database_engine_string()
+        self.engine = create_engine(self.engine)
+
+    def run(self, keyword):
+        kw = None
+        session = Session(bind = self.engine)
+        it = session.query(Keyword).filter_by(word = keyword)
+        try:
+            kw = it.one()
+        except NoResultsFound:
+            return None 
+
+        return kw.id 
+
 class TestKWIdentityResolve(IdentityResolve):
     
     KEYWORD_IDENTITIES = [("Barack Obama", 47),
