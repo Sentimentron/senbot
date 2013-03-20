@@ -72,6 +72,7 @@ def perform_site_docs_resolution(item):
 	if type(item) != QueryDomain:
 		return item 
 
+	domain = item.domain
 	result = chain(get_site_id.subtask(args=(domain,)), get_site_docs.subtask())()
 	return SiteDocResolutionPlaceholder(result)
 
@@ -81,22 +82,6 @@ def resolve_all_documents(item):
 
 	return item.resolve()
  
-def resolve_site(item):
-    if type(item) != QueryDomain:
-        return item 
-
-    domain = item.domain
-    return chain(get_site_id.subtask(args=(domain,)), get_site_docs.subtask())()
-
-def resolve(result):
-    print "RESOLVE",type(result), isinstance(result, AsyncResult)
-    if not isinstance(result, AsyncResult):
-        return result 
-    try:
-        return result.get()
-    except TimeoutError:
-        return None 
-
 for c, q in enumerate(queries):
 
     if c != 2:
