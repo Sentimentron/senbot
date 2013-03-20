@@ -168,6 +168,8 @@ class ProdDocPublished(DatabaseTask):
 
         raise AssertionError("Shouldn't be here!")
 
+get_document_date = registry.tasks[ProdDocPublished.name]
+
 class PhraseMatchFromKeyword(DatabaseTask):
 
     def run(self, keyword_id):

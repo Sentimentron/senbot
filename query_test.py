@@ -7,7 +7,7 @@ from celery import chain
 from celery.result import AsyncResult
 from celery.exceptions import TimeoutError
 import types
-from tasks import get_site_id, get_site_docs, get_keyword_id, get_keyword_docs 
+from tasks import get_site_id, get_site_docs, get_keyword_id, get_keyword_docs, get_document_date 
 import itertools 
 celery = get_celery()
 
@@ -79,6 +79,17 @@ def perform_keywordlt_docs_resolution(keyword):
     result = perform_keywordlt_docs_resolution(kw)
 
     return type(keyword)(result)
+
+def perform_document_date_resolution(documents):
+    g = group(get_document_date.subtask(d) for d in documents).apply_async()
+    return g 
+
+def resolve_document_dates(result):
+    ret = {}
+    for _id, date in result.iterate():
+        ret[_id] = date 
+
+    return ret 
 
 def perform_site_docs_resolution(item):
     if type(item) != QueryDomain:
@@ -177,7 +188,6 @@ for c, q in enumerate(queries):
     print "PARSED", parsed
     
     doc_keywords_dict = {}
-
     # Got a problem: ignores literal keyword modifiers
     inter = parsed
     inter = recursive_map(inter, perform_site_docs_resolution)
@@ -188,6 +198,6 @@ for c, q in enumerate(queries):
     inter = recursive_map(inter, lambda x: resolve_all_documents(x, doc_keywords_dict))
     inter = recursive_map(inter, lambda x: resolve_literal_documents(x, doc_keywords_dict))
     inter = combine_retrieved_documents(inter)
-    print inter
 
-    print doc_keywords_dict
+    # Build the document properties dict
+
