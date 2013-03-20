@@ -66,6 +66,12 @@ class QueryContainer(object):
 	def append(self, item):
 		self._list.append(item)
 
+	def __getitem__(self, k):
+		return self._list[k]
+
+	def __setitem__(self, k, v):
+		self._list[k] = v
+
 class QueryJoinOperator(QueryContainer):
 	def __repr__(self):
 		return "%s(%s)" % ("QueryJoinOperator", self._list)
