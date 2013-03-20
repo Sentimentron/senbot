@@ -133,7 +133,7 @@ def resolve_literal_documents(iterable, doc_keywords_dict):
     # Pull together things at this level 
     if isinstance(iterable, QueryKeywordModifier):
         kw = iterable.item 
-        iterable = type(iterable)(resolve_all_documents(kw))
+        iterable = type(iterable)(resolve_all_documents(kw, doc_keywords_dict))
     
     return iterable 
 
