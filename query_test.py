@@ -19,7 +19,7 @@ def expand_keyword(keyword):
     if type(keyword) != QueryKeyword:
         return keyword
     kw = keyword.keyword
-    return celery.send_task("cache.ProdWhiteSpaceKWExpand", [kw])
+    return [keyword, celery.send_task("cache.ProdWhiteSpaceKWExpand", [kw])]
 
 def resolve_keyword(keyword):
     if type(keyword) == type(set([])):
@@ -36,7 +36,7 @@ def resolve_keyword(keyword):
 
     assert kw != None 
 
-    return chain(get_keyword_id.subtask(args=(kw,), get_keyword_docs.subtask()))()
+    return chain(get_keyword_id.subtask(args=(kw,)), get_keyword_docs.subtask())()
 
 def resolve_site(item):
     if type(item) != QueryDomain:
