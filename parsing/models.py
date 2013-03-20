@@ -90,7 +90,7 @@ class QueryIntersection(QueryJoinOperator):
 				ret = set(i)
 				continue 
 			ret = ret.intersection(i)
-		return ret 
+		return list(ret)
 
 class QueryDifference(QueryJoinOperator):
 	def __repr__(self):
@@ -103,6 +103,7 @@ class QueryDifference(QueryJoinOperator):
 				ret = set(i)
 				continue 
 			ret = ret.difference(i)
+		return list(ret)
 
 class QueryUnion(QueryJoinOperator):
 	def __repr__(self):
@@ -115,7 +116,7 @@ class QueryUnion(QueryJoinOperator):
 				ret = set(i)
 				continue 
 			ret = ret.union(i)
-		return ret
+		return list(ret)
 
 class Query(QueryContainer):
 	pass 
