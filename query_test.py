@@ -18,36 +18,36 @@ queries = ["Barack", "McCain",
 
 class ResultPlaceholder(object):
 
-	def __init__(self, result):
-		self.result = result 
+    def __init__(self, result):
+        self.result = result 
 
 class AsyncPlaceholder(ResultPlaceholder):
 
-	def __init__(self, result):
-		if not isinstance(result, AsyncResult):
-			raise TypeError(type(result))
-		self.result = result
+    def __init__(self, result):
+        if not isinstance(result, AsyncResult):
+            raise TypeError(type(result))
+        self.result = result
 
-	def resolve(self):
-		return self.result.get()
+    def resolve(self):
+        return self.result.get()
 
 class SiteDocResolutionPlaceholder(AsyncPlaceholder):
-	pass 
+    pass 
 
 class KeywordDocResolutionPlaceholder(AsyncPlaceholder):
-	pass 
+    pass 
 
 class KeywordExpansionPlaceholder(AsyncPlaceholder):
 
-	def __init__(self, result, original):
-		super(KeywordExpansionPlaceholder, self).__init__(result)
-		self.original = original 
+    def __init__(self, result, original):
+        super(KeywordExpansionPlaceholder, self).__init__(result)
+        self.original = original 
 
-	def resolve(self):
-		expansions = super(KeywordExpansionPlaceholder, self).resolve() 
-		expansions = [QueryKeyword.from_str(i) for i in expansions]
-		expansions.append(self.original)
-		return OrQuery(expansions)
+    def resolve(self):
+        expansions = super(KeywordExpansionPlaceholder, self).resolve() 
+        expansions = [QueryKeyword.from_str(i) for i in expansions]
+        expansions.append(self.original)
+        return OrQuery(expansions)
 
 def perform_keyword_expansions(keyword):
     if type(keyword) != QueryKeyword:
@@ -57,60 +57,60 @@ def perform_keyword_expansions(keyword):
     return KeywordExpansionPlaceholder(result, keyword)
 
 def resolve_keyword_expansions(keyword):
-	if type(keyword) != KeywordExpansionPlaceholder:
-		return keyword 
+    if type(keyword) != KeywordExpansionPlaceholder:
+        return keyword 
 
-	return keyword.resolve() 
+    return keyword.resolve() 
 
 def perform_keyword_docs_resolution(keyword):
-	if type(keyword) != QueryKeyword:
-		return keyword 
+    if type(keyword) != QueryKeyword:
+        return keyword 
 
-	kw = keyword.keyword 
-	result = chain(get_keyword_id.subtask(args=(kw,)), get_keyword_docs.subtask())() 
-	return KeywordDocResolutionPlaceholder(result)
+    kw = keyword.keyword 
+    result = chain(get_keyword_id.subtask(args=(kw,)), get_keyword_docs.subtask())() 
+    return KeywordDocResolutionPlaceholder(result)
 
 def perform_keywordlt_docs_resolution(keyword):
-	if not isinstance(keyword, QueryKeywordModifier):
-		return keyword 
+    if not isinstance(keyword, QueryKeywordModifier):
+        return keyword 
 
-	kw = keyword.item
-	result = perform_keywordlt_docs_resolution(kw)
+    kw = keyword.item
+    result = perform_keywordlt_docs_resolution(kw)
 
-	return type(keyword)(result)
+    return type(keyword)(result)
 
 def perform_site_docs_resolution(item):
-	if type(item) != QueryDomain:
-		return item 
+    if type(item) != QueryDomain:
+        return item 
 
-	domain = item.domain
-	result = chain(get_site_id.subtask(args=(domain,)), get_site_docs.subtask())()
-	return SiteDocResolutionPlaceholder(result)
+    domain = item.domain
+    result = chain(get_site_id.subtask(args=(domain,)), get_site_docs.subtask())()
+    return SiteDocResolutionPlaceholder(result)
 
 def resolve_literal_documents(item):
-	if not isinstance(item, QueryKeywordModifier):
-		return item 
-	return type(item)(resolve_all_documents(item.item)) 
+    if not isinstance(item, QueryKeywordModifier):
+        return item 
+    return type(item)(resolve_all_documents(item.item)) 
 
 def resolve_all_documents(item):
-	if not isinstance(item, AsyncPlaceholder):
-		return item 
+    if not isinstance(item, AsyncPlaceholder):
+        return item 
 
-	return item.resolve()
+    return item.resolve()
 
 def _combine_retrieved_documents(item):
-	if not isinstance(item, Query):
-		return item 
+    if not isinstance(item, Query):
+        return item 
 
-	return item.aggregate()
+    return item.aggregate()
 
 def combine_retrieved_documents(iterable):
-	if hasattr(iterable, '__iter__') and not isinstance(item, Query)
-		for i, item in enumerate(iterable):
-			iterable[i] = combine_retrieved_documents(item, func)
-		return iterable 
-	else:
-		return _combine_retrieved_documents(iterable)
+    if hasattr(iterable, '__iter__') and not isinstance(item, Query)
+        for i, item in enumerate(iterable):
+            iterable[i] = combine_retrieved_documents(item, func)
+        return iterable 
+    else:
+        return _combine_retrieved_documents(iterable)
  
 for c, q in enumerate(queries):
 
