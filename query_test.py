@@ -82,7 +82,7 @@ def resolve_all_documents(item):
 	if not isinstance(item, AsyncPlaceholder):
 		return item 
 
-	return list(itertools.chain.from_iterable(item.resolve()))
+	return itertools.chain(item.resolve())
  
 for c, q in enumerate(queries):
 
