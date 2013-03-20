@@ -7,7 +7,7 @@ from celery import chain
 from celery.result import AsyncResult
 from celery.exceptions import TimeoutError
 import types
-from tasks import get_site_id, get_site_docs
+from tasks import get_site_id, get_site_docs, get_keyword_id, get_keyword_docs 
 celery = get_celery()
 
 queries = ["Barack", "McCain",
@@ -22,22 +22,21 @@ def expand_keyword(keyword):
     return celery.send_task("cache.ProdWhiteSpaceKWExpand", [kw])
 
 def resolve_keyword(keyword):
-    kw = None
     if type(keyword) == type(set([])):
         return [resolve_keyword(i) for i in keyword]
+
     if type(keyword) == types.StringType:
         if keyword == "AND" or keyword == "OR":
             return keyword 
         kw = keyword
     elif type(keyword) == QueryKeyword:
         kw = keyword.keyword
-    elif type(keyword) == AsyncResult:
-        kw = keyword
     else:
         return keyword 
 
     assert kw != None 
-    return celery.send_task("tasks.ProdKWIdentityResolve", [keyword])
+
+    return chain(get_keyword_id.subtask(args=(kw,), get_keyword_docs.subtask()))()
 
 def resolve_site(item):
     if type(item) != QueryDomain:
@@ -72,7 +71,6 @@ for c, q in enumerate(queries):
     inter = recursive_map(inter, lambda x: resolve(x))
     print inter
     inter = recursive_map(inter, lambda x: resolve_keyword(x))
-    inter = recursive_map(inter, lambda x: resolve(x))
     print inter 
     inter = recursive_map(inter, lambda x: resolve_site(x))
     inter = recursive_map(inter, lambda x: resolve(x))
