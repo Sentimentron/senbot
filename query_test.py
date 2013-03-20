@@ -200,4 +200,5 @@ for c, q in enumerate(queries):
     inter = combine_retrieved_documents(inter)
 
     # Build the document properties dict
-
+    perform_document_date_resolution(inter)
+    
