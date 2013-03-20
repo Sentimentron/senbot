@@ -53,35 +53,35 @@ class ProdSiteIdentityResolve(DatabaseTask):
 
     def run(self, domain):
         session = Session(bind = self.engine)
-        it = session.query(Domain).filter_by(key = domain)
-        ret = None
-        try:
-            ret = it.one()
-        except NoResultFound:
-            return None 
 
-        ret = ret.id 
-        session.close()
+        sql = """SELECT id FROM domains 
+            WHERE `key` LIKE "%(:dm)""""
+
+        ret = set([])
+        for _id in session.execute(sql, {'dm': domain}):
+            ret.add(_id)
+
         return ret 
 
 get_site_id = registry.tasks[ProdKWIdentityResolve.name]
 
 class ProdSiteDocsResolve(DatabaseTask):
 
-    def run(self, domain_id):
+    def run(self, domain_ids):
 
-        sql = """SELECT MAX(documents.id) FROM documents
-            JOIN articles ON documents.article_id = articles.id 
-            WHERE articles.domain_id = %d
-            GROUP BY articles.id""" % (domain_id, )
-
-        print sql
         session = Session(bind = self.engine)
-        ret = set([])
-        for _id, in session.execute(sql):
-            ret.add(_id)
+        for domain_id in domain_ids:
+            sql = """SELECT MAX(documents.id) FROM documents
+                JOIN articles ON documents.article_id = articles.id 
+                WHERE articles.domain_id = %d
+                GROUP BY articles.id""" % (domain_id, )
 
-        session.close()
+            print sql
+            ret = set([])
+            for _id, in session.execute(sql):
+                ret.add(_id)
+
+            session.close()
         return ret
 
 get_site_docs = registry.tasks[ProdSiteDocsResolve.name]
