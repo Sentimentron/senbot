@@ -87,6 +87,7 @@ def perform_document_date_resolution(documents):
 def resolve_document_dates(result):
     ret = {}
     for _id, method, date in result.iterate():
+        print _id, method, date
         ret[_id] = (method, date)
 
     return ret 
@@ -200,5 +201,5 @@ for c, q in enumerate(queries):
     inter = combine_retrieved_documents(inter)
 
     # Build the document properties dict
-    perform_document_date_resolution(inter)
-    
+    date_results = perform_document_date_resolution(inter)
+    print resolve_document_dates(date_results)
