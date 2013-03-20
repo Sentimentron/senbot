@@ -88,16 +88,27 @@ def perform_site_docs_resolution(item):
     result = chain(get_site_id.subtask(args=(domain,)), get_site_docs.subtask())()
     return SiteDocResolutionPlaceholder(result)
 
-def resolve_literal_documents(item):
+def resolve_literal_documents(item, doc_keywords_dict={}):
     if not isinstance(item, QueryKeywordModifier):
         return item 
-    return type(item)(resolve_all_documents(item.item)) 
+    return type(item)(resolve_all_documents(item.item, doc_keywords_dict)) 
 
-def resolve_all_documents(item):
+def resolve_all_documents(item, doc_keywords_dict={}): 
+    # TODO: modify this to return the keyword identifiers too
+    # Write a neew method for site resul
     if not isinstance(item, AsyncPlaceholder):
         return item 
 
-    return item.resolve()
+    result = item.resolve()
+    if isinstance(item, KeywordDocResolutionPlaceholder):
+        keyword_id, docs = result 
+        for d in docs:
+            if d not in doc_keywords_dict:
+                doc_keywords_dict[d] = set([])
+            doc_keywords_dict[d].add(keyword_id)
+        return docs 
+
+    return result
 
 def _combine_retrieved_documents(item):
     if not isinstance(item, Query):
@@ -170,6 +181,8 @@ for c, q in enumerate(queries):
     print c
     print "PARSED", parsed
     
+    doc_keywords_dict = {}
+
     # Got a problem: ignores literal keyword modifiers
     inter = parsed
     inter = recursive_map(inter, perform_site_docs_resolution)
@@ -177,7 +190,9 @@ for c, q in enumerate(queries):
     inter = recursive_map(inter, resolve_keyword_expansions)
     inter = recursive_map(inter, perform_keyword_docs_resolution)
     inter = recursive_map(inter, perform_keywordlt_docs_resolution)
-    inter = recursive_map(inter, resolve_all_documents)
-    inter = recursive_map(inter, resolve_literal_documents)
+    inter = recursive_map(inter, lambda x: resolve_all_documents(x, doc_keywords_dict))
+    inter = recursive_map(inter, lambda x: resolve_literal_documents(x, doc_keywords_dict))
     inter = combine_retrieved_documents(inter)
     print inter
+
+    print doc_keywords_dict

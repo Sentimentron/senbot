@@ -102,7 +102,7 @@ class ProdKeywordDocsResolve(DatabaseTask):
             ret.add(_id)
 
         session.close()
-        return ret 
+        return keyword_id, ret 
 
 get_keyword_docs = registry.tasks[ProdKeywordDocsResolve.name]
 
