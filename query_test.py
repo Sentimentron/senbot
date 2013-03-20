@@ -3,10 +3,11 @@
 from parsing.models import *
 from parsing.parser import *
 from core import recursive_map, get_celery
+from celery import chain
 from celery.result import AsyncResult
 from celery.exceptions import TimeoutError
 import types
-
+from tasks import get_site_id, get_site_docs
 celery = get_celery()
 
 queries = ["Barack", "McCain",
@@ -38,6 +39,13 @@ def resolve_keyword(keyword):
     assert kw != None 
     return celery.send_task("tasks.ProdKWIdentityResolve", [keyword])
 
+def resolve_site(item):
+    if type(item) == QueryDomain:
+        return item 
+
+    domain = item.domain
+    return chain(get_site_id(domain), get_site_docs)
+
 def resolve(result):
     print "RESOLVE",type(result), isinstance(result, AsyncResult)
     if not isinstance(result, AsyncResult):
@@ -66,3 +74,6 @@ for c, q in enumerate(queries):
     inter = recursive_map(inter, lambda x: resolve_keyword(x))
     inter = recursive_map(inter, lambda x: resolve(x))
     print inter 
+    inter = recursive_map(inter, lambda x: resolve_site(x))
+    inter = recursive_map(inter, lambda x: resolve(x))
+    print inter

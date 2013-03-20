@@ -64,6 +64,8 @@ class ProdSiteIdentityResolve(DatabaseTask):
         session.close()
         return ret 
 
+get_site_id = registry.tasks[ProdKWIdentityResolve.name]
+
 class ProdSiteDocsResolve(DatabaseTask):
 
     def run(self, domain_id):
@@ -81,6 +83,8 @@ class ProdSiteDocsResolve(DatabaseTask):
 
         session.close()
         return ret
+
+get_site_docs = registry.tasks[ProdSiteDocsResolve.name]
 
 class ProdKeywordDocsResolve(DatabaseTask):
 
