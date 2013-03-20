@@ -7,6 +7,7 @@ from celery import chain
 from celery.result import AsyncResult
 from celery.exceptions import TimeoutError
 import types
+from sqlalc
 from tasks import get_site_id, get_site_docs, get_keyword_id, get_keyword_docs, get_document_date 
 import itertools 
 celery = get_celery()
@@ -81,12 +82,13 @@ def perform_keywordlt_docs_resolution(keyword):
     return type(keyword)(result)
 
 def perform_document_date_resolution(documents):
-    g = group(get_document_date.subtask(d) for d in documents).apply_async()
-    return g 
+    return [get_document_date.delay((d)) for d in documents]
+    #g = group(get_document_date.subtask(d) for d in documents).apply_async()
+    #return g 
 
 def resolve_document_dates(result):
     ret = {}
-    for _id, method, date in result.iterate():
+    for _id, method, date in (r.get() for r in result):
         ret[_id] = (method, date)
 
     return ret 
