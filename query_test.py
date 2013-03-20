@@ -136,14 +136,14 @@ def combine_retrieved_documents(iterable):
     # If this is iterable, apply combine_retrieve_documents to all sublevels
     if hasattr(iterable, '__iter__'):
         # Need to check for literals
-        iterable = [combine_retrieved_documents(i) for i in iterable]
+        iterable = list(itertools.chain.from_iterable([combine_retrieved_documents(i) for i in iterable]))
         require  = [i for i in iterable if isinstance(i, QueryKeywordLiteralModifier)]
         exclude  = [i for i in iterable if isinstance(i, QueryKeywordExclusionModifier)]
 
-        require = [j for j in [i.item for i in require]]
-        exclude = [j for j in [i.item for j in exclude]]
+        require = list(itertools.chain.from_iterable([i.item for i in require]))
+        exclude = list(itertools.chain.from_iterable([i.item for i in exclude]))
 
-        print len(requre), len(exclude), len(iterable)
+        print len(require), len(exclude), len(iterable),
 
         if len(require) > 0:
             iterable = [i for i in iterable if i in require]
@@ -151,6 +151,8 @@ def combine_retrieved_documents(iterable):
         if len(exclude) > 0:
           iterable = [i for i in iterable if i not in exclude]
         print len(iterable)
+    else:
+        iterable = [iterable]
 
     # Pull together document identifiers if possible
     if isinstance(iterable, Query):
