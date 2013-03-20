@@ -98,11 +98,19 @@ def resolve_all_documents(item):
 
 	return item.resolve()
 
-def combine_retrieved_documents(item):
+def _combine_retrieved_documents(item):
 	if not isinstance(item, Query):
 		return item 
 
 	return item.aggregate()
+
+def combine_retrieved_documents(iterable):
+	if hasattr(iterable, '__iter__') and not isinstance(item, Query)
+		for i, item in enumerate(iterable):
+			iterable[i] = combine_retrieved_documents(item, func)
+		return iterable 
+	else:
+		return _combine_retrieved_documents(iterable)
  
 for c, q in enumerate(queries):
 
