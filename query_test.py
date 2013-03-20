@@ -45,8 +45,8 @@ class KeywordExpansionPlaceholder(AsyncPlaceholder):
 	def resolve(self):
 		expansions = super(KeywordExpansionPlaceholder, self).resolve() 
 		expansions = [QueryKeyword.from_str(i) for i in expansions]
-		expansions.add(self.original)
-		return OrQuery(list(expansions))
+		expansions.append(self.original)
+		return OrQuery(expansions)
 
 def perform_keyword_expansions(keyword):
     if type(keyword) != QueryKeyword:
