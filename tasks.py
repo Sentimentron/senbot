@@ -32,7 +32,7 @@ class DatabaseTask(Task):
 
     def __init__(self):
         self.engine = get_database_engine_string()
-        self.engine = create_engine(self.engine)
+        self.engine = create_engine(self.engine, pool_recycle=5)
 
 class ProdKWIdentityResolve(DatabaseTask):
 
