@@ -71,6 +71,7 @@ def perform_keyword_docs_resolution(keyword):
     return KeywordDocResolutionPlaceholder(result)
 
 def perform_keywordlt_docs_resolution(keyword):
+    print type(keyword)
     if not isinstance(keyword, QueryKeywordModifier):
         return keyword 
 
@@ -104,13 +105,37 @@ def _combine_retrieved_documents(item):
 
     return item.aggregate()
 
+
+def perform_keywordlt_docs_resolution(iterable):
+    # If this is iterable, apply to all sublevels
+    if hasattr(iterable, '__iter__'):
+        iterable = [perform_keywordlt_docs_resolution(i) for i in iterable]
+
+    # Pull together things at this level 
+    if isinstance(iterable, QueryKeywordModifier):
+        kw = iterable.item 
+        iterable = perform_keyword_docs_resolution(kw)
+    
+    return iterable 
+
+
+def resolve_literal_documents(iterable):
+    # If this is iterable, apply to all sublevels
+    if hasattr(iterable, '__iter__'):
+        iterable = [resolve_literal_documents(i) for i in iterable]
+
+    # Pull together things at this level 
+    if isinstance(iterable, QueryKeywordModifier):
+        kw = iterable.item 
+        iterable = resolve_all_documents(kw)
+    
+    return iterable 
+
 def combine_retrieved_documents(iterable):
 
     # If this is iterable, apply combine_retrieve_documents to all sublevels
     if hasattr(iterable, '__iter__'):
-        return [combine_retrieved_documents(i) for i in iterable]
-        for i, item in enumerate(iterable):
-            iterable[i] = combine_retrieved_documents(item)
+        iterable = [combine_retrieved_documents(i) for i in iterable]
 
     # Pull together document identifiers if possible
     if isinstance(iterable, Query):
