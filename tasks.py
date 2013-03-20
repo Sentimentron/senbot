@@ -26,13 +26,15 @@ class IdentityResolve(Task):
     def run(self, item):
         return (item, self.tree.find(item))
 
-class ProdKWIdentityResolve(Task):
+class DatabaseTask(Task):
 
     acks_late = True
 
     def __init__(self):
         self.engine = get_database_engine_string()
         self.engine = create_engine(self.engine)
+
+class ProdKWIdentityResolve(DatabaseTask):
 
     def run(self, keyword):
         kw = None
@@ -45,53 +47,135 @@ class ProdKWIdentityResolve(Task):
 
         ret = kw.id
         session.close()
-        return ret  
+        return ret
 
-class TestKWIdentityResolve(IdentityResolve):
-    
-    KEYWORD_IDENTITIES = [("Barack Obama", 47),
-        ("Senator Barack Obama", 49),
-        ("President Bush", 20),
-        ("Senator John McCain", 76)
-    ]
+class ProdSiteIdentityResolve(DatabaseTask):
 
-    def __init__(self):
-        self.tree = UnambiguousTrieNode()
-        for word, _id in self.KEYWORD_IDENTITIES:
-            self.tree.build(word, _id)
+    def run(self, domain):
+        session = Session(bind = self.engine)
+        it = session.query(Domain).filter_by(key = domain)
+        ret = None
+        try:
+            ret = it.one()
+        except NoResultFound:
+            return None 
 
-class DatabaseTask(Task):
+        ret = ret.id 
+        session.close()
+        return ret 
 
-    def __init__(self):
-        self.engine = get_database_engine_string()
-        self.conn   = create_engine(self.engine)
+class ProdSiteDocsResolve(DatabaseTask):
 
-class DocumentMatchFromKeyword(DatabaseTask):
+    def run(self, domain_id):
+
+        sql = """SELECT MAX(documents.id) FROM documents
+            JOIN articles ON documents.article_id = articles.id 
+            JOIN domains ON articles.domain_id = domains.id 
+            WHERE domains.id = %d
+            GROUP BY articles.id""" % (domain_id, )
+
+        session = Session(bind = self.engine)
+        ret = set([])
+        for _id, in session.execute(sql):
+            ret.add(_id)
+
+        session.close()
+        return ret
+
+class ProdKeywordDocsResolve(DatabaseTask):
 
     def run(self, keyword_id):
-        session = Session(bind=self.conn)
-        ret = set([])
-        it = session.query(KeywordAdjacency).filter_by(key1_id = keyword_id)
-        for thing in it:
-            ret.add(thing.doc_id)
 
+        sql = """SELECT DISTINCT documents.id FROM documents 
+        JOIN keyword_adjacencies ON keyword_adjacencies.doc_id = documents.id 
+        WHERE key1_id = %d OR key2_id = %d""" % (keyword_id, keyword_id)
+
+        session = Session(bind = self.engine)
+        ret = set([])
+        for _id, in session.execute(sql):
+            ret.add(_id)
+
+        session.close()
         return ret 
+
+class ProdDocLinksSummary(DatabaseTask):
+
+    def run(self, doc_id):
+
+        sql = """SELECT domains.`key`, COUNT(*) FROM links_absolute
+            JOIN domains ON links_absolute.domain_id = domains.id 
+            GROUP BY (domains.id)
+            WHERE links_absolute.document_id = %d""" % (doc_id,)
+
+        ret = {}
+        session = Session(bind=self.engine)
+        for key, count in session.execute(sql):
+            ret[key] = count 
+
+        sql = """SELECT domains.`key` FROM domains 
+        JOIN articles ON articles.domain_id = domains.id
+        JOIN documents ON documents.article_id = articles.id
+        WHERE documents.id = %d""" % (doc_id,)
+        for domain, in session.execute(sql):
+            pass 
+
+        sql = """SELECT COUNT(*) FROM links_relative WHERE document_id = %d"""
+        for count, in session.execute(sql):
+            pass 
+
+        assert domain != None 
+        assert count  != None 
+
+        if count > 0:
+            if domain not in ret:
+                ret[domain] = 0
+
+            ret[domain] += count 
+
+        session.close()
+        return ret 
+
+class ProdDocPublished(DatabaseTask):
+
+    def run(self, document_id):
+        session = Session(bind = self.engine)
+        
+        # Certain date resolution
+        sql = """SELECT certain_dates.date FROM certain_dates
+        WHERE doc_id = %d""" % (document_id, ) 
+        for date, in session.execute(sql):
+            return "Certain", date 
+
+        # Uncertain date resolution
+        sql = """SELECT uncertain_dates.date FROM uncertain_dates 
+        WHERE doc_id = %d""" % (document_id, )
+        for date, in session.execute(sql):
+            return "Uncertain", date 
+
+        sql = """SELECT articles.crawled FROM articles 
+            JOIN documents ON documents.article_id = articles.id 
+            WHERE documents.id = %d""" % (document_id,)
+        for date, in session.execute(sql):
+            return "Crawled", date 
+
+        raise AssertionError("Shouldn't be here!")
 
 class PhraseMatchFromKeyword(DatabaseTask):
 
     def run(self, keyword_id):
-        session = Session(bind=self.conn)
+        session = Session(bind=self.engine)
         ret = set([])
         it  = session.query(KeywordIncidence).filter_by(keyword_id = keyword_id)
         for thing in it:
             ret.add(thing.phrase_id)
 
+        session.close()
         return ret 
 
 class GetPhrasesFromDocID(DatabaseTask):
 
     def run(self, document_id):
-        session = Session(bind=self.conn)
+        session = Session(bind=self.engine)
         ret     = set([])
         doc     = session.query(Document).get(document_id)
         
@@ -99,5 +183,6 @@ class GetPhrasesFromDocID(DatabaseTask):
             for phrase in sentence.phrases:
                 ret.add(phrase)
 
+        session.close()
         return ret 
 
