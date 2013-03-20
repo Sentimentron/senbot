@@ -152,19 +152,19 @@ class ProdDocPublished(DatabaseTask):
         sql = """SELECT certain_dates.date FROM certain_dates
         WHERE doc_id = %d""" % (document_id, ) 
         for date, in session.execute(sql):
-            return "Certain", date 
+            return document_id, "Certain", date 
 
         # Uncertain date resolution
         sql = """SELECT uncertain_dates.date FROM uncertain_dates 
         WHERE doc_id = %d""" % (document_id, )
         for date, in session.execute(sql):
-            return "Uncertain", date 
+            return document_id, "Uncertain", date 
 
         sql = """SELECT articles.crawled FROM articles 
             JOIN documents ON documents.article_id = articles.id 
             WHERE documents.id = %d""" % (document_id,)
         for date, in session.execute(sql):
-            return "Crawled", date 
+            return document_id, "Crawled", date 
 
         raise AssertionError("Shouldn't be here!")
 

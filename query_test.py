@@ -86,8 +86,8 @@ def perform_document_date_resolution(documents):
 
 def resolve_document_dates(result):
     ret = {}
-    for _id, date in result.iterate():
-        ret[_id] = date 
+    for _id, method, date in result.iterate():
+        ret[_id] = (method, date)
 
     return ret 
 
