@@ -44,8 +44,7 @@ def resolve_site(item):
         return item 
 
     domain = item.domain
-    return get_site_id.apply_async((domain,), link=get_site_docs.subtask())
-    return chain(get_site_id(domain), get_site_docs).apply_async()
+    return chain(get_site_id.subtask(args=(domain,)), get_site_docs.subtask())()
 
 def resolve(result):
     print "RESOLVE",type(result), isinstance(result, AsyncResult)

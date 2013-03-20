@@ -55,9 +55,10 @@ class ProdSiteIdentityResolve(DatabaseTask):
         session = Session(bind = self.engine)
 
         sql = """SELECT id FROM domains 
-            WHERE `key` LIKE "%%%s"""" % (domain,)
+            WHERE `key` LIKE "%%%s"
+        """ % (domain,)
         ret = set([])
-        for _id in session.execute(sql):
+        for _id, in session.execute(sql):
             ret.add(_id)
 
         return ret 
