@@ -24,6 +24,10 @@ class QueryKeyword(ParseContainer):
 		for keyword in toks:
 			self.keyword = keyword 
 
+	@classmethod
+	def from_str(self, s):
+		return QueryKeyword(None, None, [s])
+
 	def __repr__(self):
 		return "QueryKeyword(%s)" % (self.keyword,)
 
