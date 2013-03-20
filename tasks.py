@@ -49,6 +49,8 @@ class ProdKWIdentityResolve(DatabaseTask):
         session.close()
         return ret
 
+get_keyword_id = registry.tasks[ProdKWIdentityResolve.name]
+
 class ProdSiteIdentityResolve(DatabaseTask):
 
     def run(self, domain):
@@ -101,6 +103,8 @@ class ProdKeywordDocsResolve(DatabaseTask):
 
         session.close()
         return ret 
+
+get_keyword_docs = registry.tasks[ProdKeywordDocsResolve.name]
 
 class ProdDocLinksSummary(DatabaseTask):
 
