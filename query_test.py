@@ -15,29 +15,72 @@ queries = ["Barack", "McCain",
     "+Barack AND -\"McCain Oven Chips\" foxnews.com"
 ]
 
-def expand_keyword(keyword):
+class ResultPlaceholder(object):
+
+	def __init__(self, result):
+		self.result = result 
+
+class AsyncPlaceholder(ResultPlaceholder):
+
+	def __init__(self, result):
+		if not isinstance(result, AsyncResult):
+			raise TypeError(type(result))
+		self.result = result
+
+	def resolve(self):
+		return self.result.get()
+
+class SiteDocResolutionPlaceholder(AsyncPlaceholder):
+	pass 
+
+class KeywordDocResolutionPlaceholder(AsyncPlaceholder):
+	pass 
+
+class KeywordExpansionPlaceholder(AsyncPlaceholder):
+
+	def __init__(self, result, original):
+		super(KeywordExpansionPlaceholder, self).__init__(result)
+		self.original = original 
+
+	def resolve(self):
+		expansions = super(KeywordExpansionPlaceholder, self).resolve() 
+		expansions.add(self.original)
+		return OrQuery(list(expansions))
+
+def perform_keyword_expansions(keyword):
     if type(keyword) != QueryKeyword:
         return keyword
     kw = keyword.keyword
-    return [keyword, celery.send_task("cache.ProdWhiteSpaceKWExpand", [kw])]
+    result = celery.send_task("cache.ProdWhiteSpaceKWExpand", [kw])
+    return KeywordExpansionPlaceholder(result, keyword)
 
-def resolve_keyword(keyword):
-    if type(keyword) == type(set([])):
-        return [resolve_keyword(i) for i in keyword]
+def resolve_keyword_expansions(keyword):
+	if type(keyword) != KeywordExpansionPlaceholder:
+		return keyword 
 
-    if type(keyword) == types.StringType:
-        if keyword == "AND" or keyword == "OR":
-            return keyword 
-        kw = keyword
-    elif type(keyword) == QueryKeyword:
-        kw = keyword.keyword
-    else:
-        return keyword 
+	return keyword.resolve() 
 
-    assert kw != None 
+def perform_keyword_docs_resolution(keyword):
+	if type(keyword) != QueryKeyword:
+		return keyword 
 
-    return chain(get_keyword_id.subtask(args=(kw,)), get_keyword_docs.subtask())()
+	kw = keyword.keyword 
+	result = chain(get_keyword_id.subtask(args=(kw,)), get_keyword_docs.subtask())() 
+	return KeywordDocResolutionPlaceholder(result)
 
+def perform_site_docs_resolution(item):
+	if type(item) != QueryDomain:
+		return item 
+
+	result = chain(get_site_id.subtask(args=(domain,)), get_site_docs.subtask())()
+	return SiteDocResolutionPlaceholder(result)
+
+def resolve_all_documents(item):
+	if not isinstance(item, AsyncPlaceholder):
+		return item 
+
+	return item.resolve()
+ 
 def resolve_site(item):
     if type(item) != QueryDomain:
         return item 
@@ -66,12 +109,9 @@ for c, q in enumerate(queries):
     
     # Got a problem: ignores literal keyword modifiers
     inter = parsed
-    inter = recursive_map(inter, lambda x: expand_keyword(x))
-    print inter 
-    inter = recursive_map(inter, lambda x: resolve(x))
-    print inter
-    inter = recursive_map(inter, lambda x: resolve_keyword(x))
-    print inter 
-    inter = recursive_map(inter, lambda x: resolve_site(x))
-    inter = recursive_map(inter, lambda x: resolve(x))
+    inter = recursive_map(inter, perform_site_docs_resolution)
+    inter = recursive_map(inter, perform_keyword_expansions)
+    inter = recursive_map(inter, resolve_keyword_expansions)
+    inter = recursive_map(inter, perform_keyword_docs_resolution)
+    inter = recursive_map(inter, resolve_all_documents)
     print inter
