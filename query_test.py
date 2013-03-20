@@ -70,6 +70,15 @@ def perform_keyword_docs_resolution(keyword):
 	result = chain(get_keyword_id.subtask(args=(kw,)), get_keyword_docs.subtask())() 
 	return KeywordDocResolutionPlaceholder(result)
 
+def perform_keywordlt_docs_resolution(keyword):
+	if not isinstance(keyword, QueryKeywordModifier):
+		return keyword 
+
+	kw = keyword.item
+	result = perform_keywordlt_docs_resolution(kw)
+
+	return type(keyword)(result)
+
 def perform_site_docs_resolution(item):
 	if type(item) != QueryDomain:
 		return item 
@@ -78,11 +87,22 @@ def perform_site_docs_resolution(item):
 	result = chain(get_site_id.subtask(args=(domain,)), get_site_docs.subtask())()
 	return SiteDocResolutionPlaceholder(result)
 
+def resolve_literal_documents(item):
+	if not isinstance(item, QueryKeywordModifier):
+		return item 
+	return type(item)(resolve_all_documents(item)) 
+
 def resolve_all_documents(item):
 	if not isinstance(item, AsyncPlaceholder):
 		return item 
 
 	return item.resolve()
+
+def combine_retrieved_documents(item):
+	if not isinstance(item, QueryJoinOperator):
+		return item 
+
+	return item.aggregate()
  
 for c, q in enumerate(queries):
 
@@ -100,5 +120,8 @@ for c, q in enumerate(queries):
     inter = recursive_map(inter, perform_keyword_expansions)
     inter = recursive_map(inter, resolve_keyword_expansions)
     inter = recursive_map(inter, perform_keyword_docs_resolution)
+    inter = recursive_map(inter, perform_keywordlt_docs_resolution)
     inter = recursive_map(inter, resolve_all_documents)
+    inter = recursive_map(inter, resolve_literal_documents)
     print inter
+    inter = recursive_map(inter, combine_retrieved_documents)

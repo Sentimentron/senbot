@@ -76,13 +76,46 @@ class QueryJoinOperator(QueryContainer):
 	def __repr__(self):
 		return "%s(%s)" % ("QueryJoinOperator", self._list)
 
+	def aggregate(self):
+		pass 
+
 class QueryIntersection(QueryJoinOperator):
 	def __repr__(self):
 		return "%s(%s)" % ("QueryIntersection", self._list)
 
+	def aggregate(self):
+		ret = None
+		for i in self:
+			if ret is None:
+				ret = set(i)
+				continue 
+			ret = ret.intersection(i)
+		return ret 
+
+class QueryDifference(QueryJoinOperator):
+	def __repr__(self):
+		return "%s(%s)" % ("QueryIntersection", self._list)
+
+	def aggregate(self):
+		ret = None 
+		for i in reversed(self):
+			if ret is None:
+				ret = set(i)
+				continue 
+			ret = ret.difference(i)
+
 class QueryUnion(QueryJoinOperator):
 	def __repr__(self):
 		return "%s(%s)" % ("QueryUnion", self._list)
+
+	def aggregate(self):
+		ret = None 
+		for i in self:
+			if ret is None:
+				ret = set(i)
+				continue 
+			ret = ret.union(i)
+		return ret
 
 class Query(QueryContainer):
 	pass 
