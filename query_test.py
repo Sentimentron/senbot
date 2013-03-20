@@ -140,10 +140,10 @@ def combine_retrieved_documents(iterable):
         require  = [i for i in iterable if isinstance(i, QueryKeywordLiteralModifier)]
         exclude  = [i for i in iterable if isinstance(i, QueryKeywordExclusionModifier)]
 
-        print require, exclude, len(iterable),
-
         require = [j for j in [i.item for i in require]]
         exclude = [j for j in [i.item for j in exclude]]
+
+        print len(requre), len(exclude), len(iterable)
 
         if len(require) > 0:
             iterable = [i for i in iterable if i in require]
