@@ -137,6 +137,15 @@ def combine_retrieved_documents(iterable):
     if hasattr(iterable, '__iter__'):
         # Need to check for literals
         iterable = [combine_retrieved_documents(i) for i in iterable]
+        require  = [i for i in iterable if isinstance(i, QueryKeywordLiteralModifier)]
+        exclude  = [i for i in iterable if isinstance(i, QueryKeywordExcludeModifier)]
+
+        print require, exclude, len(iterable),
+
+        iterable = [i for i in iterable if i in require]
+        print len(iterable),
+        iterable = [i for i in iterable if i not in exclude]
+        print len(iterable)
 
     # Pull together document identifiers if possible
     if isinstance(iterable, Query):
