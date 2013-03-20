@@ -55,7 +55,8 @@ class ProdSiteIdentityResolve(DatabaseTask):
         session = Session(bind = self.engine)
 
         sql = """SELECT id FROM domains 
-            WHERE `key` LIKE "%(:dm)""""
+            WHERE `key` LIKE "%(:dm)"
+        """
 
         ret = set([])
         for _id in session.execute(sql, {'dm': domain}):
@@ -63,12 +64,13 @@ class ProdSiteIdentityResolve(DatabaseTask):
 
         return ret 
 
-get_site_id = registry.tasks[ProdKWIdentityResolve.name]
+get_site_id = registry.tasks[ProdSiteIdentityResolve.name]
 
 class ProdSiteDocsResolve(DatabaseTask):
 
     def run(self, domain_ids):
 
+        ret = set([])
         session = Session(bind = self.engine)
         for domain_id in domain_ids:
             sql = """SELECT MAX(documents.id) FROM documents
@@ -77,7 +79,6 @@ class ProdSiteDocsResolve(DatabaseTask):
                 GROUP BY articles.id""" % (domain_id, )
 
             print sql
-            ret = set([])
             for _id, in session.execute(sql):
                 ret.add(_id)
 
