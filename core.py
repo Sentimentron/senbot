@@ -71,8 +71,9 @@ def get_celery():
 
 def recursive_map(iterable, func):
 	if hasattr(iterable, '__iter__'):
-		for i, item in enumerate(iterable):
-			iterable[i] = func(item)
+		ret = iterable.__class__()
+		for item in iterable:
+			ret.append(func(item))
 		return ret 
 	else:
 		return func(iterable)
