@@ -163,6 +163,5 @@ for c, q in enumerate(queries):
     inter = recursive_map(inter, perform_keywordlt_docs_resolution)
     inter = recursive_map(inter, resolve_all_documents)
     inter = recursive_map(inter, resolve_literal_documents)
-    print inter
     inter = combine_retrieved_documents(inter)
     print inter
