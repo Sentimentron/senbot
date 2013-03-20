@@ -138,13 +138,18 @@ def combine_retrieved_documents(iterable):
         # Need to check for literals
         iterable = [combine_retrieved_documents(i) for i in iterable]
         require  = [i for i in iterable if isinstance(i, QueryKeywordLiteralModifier)]
-        exclude  = [i for i in iterable if isinstance(i, QueryKeywordExcludeModifier)]
+        exclude  = [i for i in iterable if isinstance(i, QueryKeywordExclusionModifier)]
 
         print require, exclude, len(iterable),
 
-        iterable = [i for i in iterable if i in require]
+        require = [j for j in [i.item for i in require]]
+        exclude = [j for j in [i.item for j in exclude]]
+
+        if len(require) > 0:
+            iterable = [i for i in iterable if i in require]
         print len(iterable),
-        iterable = [i for i in iterable if i not in exclude]
+        if len(exclude) > 0:
+          iterable = [i for i in iterable if i not in exclude]
         print len(iterable)
 
     # Pull together document identifiers if possible
