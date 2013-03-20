@@ -114,7 +114,7 @@ def perform_keywordlt_docs_resolution(iterable):
     # Pull together things at this level 
     if isinstance(iterable, QueryKeywordModifier):
         kw = iterable.item 
-        iterable = perform_keyword_docs_resolution(kw)
+        iterable = type(iterable)(perform_keyword_docs_resolution(kw))
     
     return iterable 
 
@@ -127,7 +127,7 @@ def resolve_literal_documents(iterable):
     # Pull together things at this level 
     if isinstance(iterable, QueryKeywordModifier):
         kw = iterable.item 
-        iterable = resolve_all_documents(kw)
+        iterable = type(iterable)(resolve_all_documents(kw))
     
     return iterable 
 
@@ -135,6 +135,7 @@ def combine_retrieved_documents(iterable):
 
     # If this is iterable, apply combine_retrieve_documents to all sublevels
     if hasattr(iterable, '__iter__'):
+        # Need to check for literals
         iterable = [combine_retrieved_documents(i) for i in iterable]
 
     # Pull together document identifiers if possible
