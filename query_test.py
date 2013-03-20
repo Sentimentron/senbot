@@ -58,6 +58,9 @@ for c, q in enumerate(queries):
 	# Got a problem: ignores literal keyword modifiers
 	inter = parsed
 	inter = recursive_map(inter, lambda x: expand_keyword(x))
+	print inter 
+	inter = recursive_map(inter, lambda x: resolve(x))
+	print inter
 	inter = recursive_map(inter, lambda x: resolve_keyword(x))
 	inter = recursive_map(inter, lambda x: resolve(x))
 	print inter 
