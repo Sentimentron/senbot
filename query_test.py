@@ -125,3 +125,4 @@ for c, q in enumerate(queries):
     inter = recursive_map(inter, resolve_literal_documents)
     print inter
     inter = recursive_map(inter, combine_retrieved_documents)
+    print inter
