@@ -72,10 +72,10 @@ class ProdSiteDocsResolve(DatabaseTask):
 
         sql = """SELECT MAX(documents.id) FROM documents
             JOIN articles ON documents.article_id = articles.id 
-            JOIN domains ON articles.domain_id = domains.id 
-            WHERE domains.id = %d
+            WHERE articles.domain_id = %d
             GROUP BY articles.id""" % (domain_id, )
 
+        print sql
         session = Session(bind = self.engine)
         ret = set([])
         for _id, in session.execute(sql):

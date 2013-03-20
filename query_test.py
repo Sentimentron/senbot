@@ -40,11 +40,12 @@ def resolve_keyword(keyword):
     return celery.send_task("tasks.ProdKWIdentityResolve", [keyword])
 
 def resolve_site(item):
-    if type(item) == QueryDomain:
+    if type(item) != QueryDomain:
         return item 
 
     domain = item.domain
-    return chain(get_site_id(domain), get_site_docs)
+    return get_site_id.apply_async((domain,), link=get_site_docs.subtask())
+    return chain(get_site_id(domain), get_site_docs).apply_async()
 
 def resolve(result):
     print "RESOLVE",type(result), isinstance(result, AsyncResult)
