@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+from pprint import pprint
+
 # Pyparsing query grammar for Sentimentron
 from parsing.parser import *
 from parsing.models import *
@@ -27,5 +29,6 @@ if __name__ == "__main__":
 	"Barack Obama AND John McCain foxnews.com",
 	"(Barack OR Obama) AND (John AND McCain) foxnews.com",
 	"+Barack AND -\"McCain Oven Chips\" foxnews.com"]
-	for c,f in enumerate([query.parseString(x) for x in queries]):
-		print c, recursively_quantify(f.asList())
+	for c, q in enumerate(queries):
+		print c, q, query.parseString(q).asList()
+		print

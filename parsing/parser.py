@@ -41,9 +41,46 @@ query_element  = Or([domain, keyword])
 and_condition  = Literal("AND")
 or_condition   = Literal("OR")
 join_condition = and_condition | or_condition
-query_run      = query_element + join_condition
+and_query_run  = query_element + Suppress(and_condition) + query
+or_query_run   = query_element + Suppress(or_condition) + query 
+query_run      = or_query_run | and_query_run
 subquery       = Suppress(Literal('('))+query+Suppress(Literal(')'))
-query         << Or([Group(query_run + query), query_element, query_element + query, subquery, Group(subquery + Optional(join_condition) +  query)])
+query         << Or([Group(query_run) + query, Group(query_run), query_element, query_element + query, subquery + query, subquery])
+
+and_query_run.setParseAction(lambda s, l, t: AndQuery(t.asList()))
+or_query_run.setParseAction(lambda s, l, t: OrQuery(t.asList()))
+query.setParseAction(lambda s, l, t: AndQuery(t.asList()))
+
+def process_query(s, l, t):
+	contains_and = False 
+	contains_or  = False 
+	for item in t.asList():
+		print item, s
+		contains_and = contains_and or item == "AND"
+		contains_or  = contains_or  or item == "OR"
+
+
+
+	raw_input((contains_and, contains_or, t.asList()))
+	if contains_and and contains_or:
+		raise ParseException("Ambiguous quantifiers")
+	elif not (contains_and or contains_or):
+		contains_and = True # Implicitly convert queries without a specification into AND 
+
+
+	t = t.asList()
+	t = [i for i in t if i != "AND"]
+	t = [i for i in t if i != "OR"]
+
+	if contains_or:
+		return OrQuery(t)
+	if contains_and:
+		return AndQuery(t)
+
+	raise AssertionError("Shouldn't be here")
+
+
+#query.setParseAction(process_query)
 
 def query_post_sort(*args, **kwargs):
 	raw_input(args)

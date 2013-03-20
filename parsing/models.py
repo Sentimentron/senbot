@@ -73,3 +73,9 @@ class QueryUnion(QueryJoinOperator):
 
 class Query(QueryContainer):
 	pass 
+
+class OrQuery(QueryContainer):
+	pass 
+
+class AndQuery(QueryContainer):
+	pass
