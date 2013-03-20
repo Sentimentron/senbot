@@ -104,12 +104,13 @@ def _combine_retrieved_documents(item):
 
     return item.aggregate()
 
-def combine_retrieve_documents(iterable):
+def combine_retrieved_documents(iterable):
 
     # If this is iterable, apply combine_retrieve_documents to all sublevels
     if hasattr(iterable, '__iter__'):
+        return [combine_retrieved_documents(i) for i in iterable]
         for i, item in enumerate(iterable):
-            iterable[i] = combine_retrieve_documents(item)
+            iterable[i] = combine_retrieved_documents(item)
 
     # Pull together document identifiers if possible
     if isinstance(iterable, Query):
