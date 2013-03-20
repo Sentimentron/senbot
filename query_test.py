@@ -81,15 +81,15 @@ def perform_keywordlt_docs_resolution(keyword):
     return type(keyword)(result)
 
 def perform_document_date_resolution(documents):
-    g = group(get_document_date.subtask(d) for d in documents).apply_async()
-    return g 
+    return [get_document_date.delay((d)) for d in documents]
+    #g = group(get_document_date.subtask(d) for d in documents).apply_async()
+    #return g 
 
 def resolve_document_dates(result):
     ret = {}
-    for _id, method, date in result.iterate():
-        print _id, method, date
+    for _id, method, date in (r.get() for r in result):
         ret[_id] = (method, date)
-
+        print _id, method, date
     return ret 
 
 def perform_site_docs_resolution(item):
