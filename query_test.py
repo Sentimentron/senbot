@@ -88,11 +88,6 @@ def perform_site_docs_resolution(item):
     result = chain(get_site_id.subtask(args=(domain,)), get_site_docs.subtask())()
     return SiteDocResolutionPlaceholder(result)
 
-def resolve_literal_documents(item, doc_keywords_dict):
-    if not isinstance(item, QueryKeywordModifier):
-        return item 
-    return type(item)(resolve_all_documents(item.item, doc_keywords_dict)) 
-
 def resolve_all_documents(item, doc_keywords_dict): 
     # TODO: modify this to return the keyword identifiers too
     # Write a neew method for site resul
@@ -130,10 +125,10 @@ def perform_keywordlt_docs_resolution(iterable):
     return iterable 
 
 
-def resolve_literal_documents(iterable):
+def resolve_literal_documents(iterable, doc_keywords_dict):
     # If this is iterable, apply to all sublevels
     if hasattr(iterable, '__iter__'):
-        iterable = [resolve_literal_documents(i) for i in iterable]
+        iterable = [resolve_literal_documents(i, doc_keywords_dict) for i in iterable]
 
     # Pull together things at this level 
     if isinstance(iterable, QueryKeywordModifier):
