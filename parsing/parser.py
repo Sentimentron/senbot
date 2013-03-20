@@ -18,12 +18,22 @@ potential_keywrd= raw_keyword | quoted_keyword
 literal_modifier= Literal("+")
 exclude_modifier= Literal("-")
 keyword_modifier= literal_modifier | exclude_modifier
-modified_keyword= Group(keyword_modifier + potential_keywrd)
+modified_keyword= keyword_modifier + potential_keywrd
 keyword         = modified_keyword | potential_keywrd
 
+def wrap_modified(s, l, t):
+	modifier, modifying = t 
+	if modifier == '-':
+		return QueryKeywordExclusionModifier(modifying)
+	elif modifier == '+':
+		return QueryKeywordLiteralModifier(modifying)
+	else:
+		raise ValueError("That's not a supported modifier!")
+
+modified_keyword.setParseAction(wrap_modified)
 potential_keywrd.setParseAction(lambda s,l,t: QueryKeyword(s,l,t))
-literal_modifier.setParseAction(lambda s,l,t: QueryKeywordLiteralModifier())
-exclude_modifier.setParseAction(lambda s,l,t: QueryKeywordExclusionModifier())
+#literal_modifier.setParseAction(lambda s,l,t: QueryKeywordLiteralModifier())
+#exclude_modifier.setParseAction(lambda s,l,t: QueryKeywordExclusionModifier())
 
 # Query parsing 
 query          = Forward()

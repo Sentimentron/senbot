@@ -29,11 +29,11 @@ class QueryKeyword(ParseContainer):
 
 class QueryKeywordModifier(ParseContainer):
 
-	def __init__(self):
-		pass 
+	def __init__(self, item):
+		self.item = item
 
 	def __repr__(self):
-		return str(type(self))
+		return "%s(%s)" % (type(self), self.item)
 
 class QueryKeywordExclusionModifier(QueryKeywordModifier):
 	pass 
