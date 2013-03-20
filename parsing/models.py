@@ -118,7 +118,7 @@ class QueryUnion(QueryJoinOperator):
 			ret = ret.union(i)
 		return list(ret)
 
-class Query(QueryJoinOperator):
+class Query(QueryContainer):
 
 	def aggregate(self):
 		pass 
