@@ -118,11 +118,39 @@ class QueryUnion(QueryJoinOperator):
 			ret = ret.union(i)
 		return list(ret)
 
-class Query(QueryContainer):
-	pass 
+class Query(QueryJoinOperator):
 
-class OrQuery(QueryContainer):
-	pass 
+	def aggregate(self):
+		pass 
 
-class AndQuery(QueryContainer):
-	pass
+class OrQuery(Query):
+
+	def aggregate(self):
+		ret = None 
+		for i in self:
+			if ret is None:
+				ret = set(i)
+				continue 
+			ret = ret.union(i)
+		return list(ret)
+
+class AndQuery(Query):
+	def aggregate(self):
+		ret = None
+		for i in self:
+			if ret is None:
+				ret = set(i)
+				continue 
+			ret = ret.intersection(i)
+		return list(ret)
+
+class NotQuery(Query):
+
+	def aggregate(self):
+		ret = None 
+		for i in reversed(self):
+			if ret is None:
+				ret = set(i)
+				continue 
+			ret = ret.difference(i)
+		return list(ret)

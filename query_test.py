@@ -90,7 +90,7 @@ def perform_site_docs_resolution(item):
 def resolve_literal_documents(item):
 	if not isinstance(item, QueryKeywordModifier):
 		return item 
-	return type(item)(resolve_all_documents(item)) 
+	return type(item)(resolve_all_documents(item.item)) 
 
 def resolve_all_documents(item):
 	if not isinstance(item, AsyncPlaceholder):
@@ -99,7 +99,7 @@ def resolve_all_documents(item):
 	return item.resolve()
 
 def combine_retrieved_documents(item):
-	if not isinstance(item, QueryJoinOperator):
+	if not isinstance(item, Query):
 		return item 
 
 	return item.aggregate()
