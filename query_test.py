@@ -8,6 +8,7 @@ from celery.result import AsyncResult
 from celery.exceptions import TimeoutError
 import types
 from tasks import get_site_id, get_site_docs, get_keyword_id, get_keyword_docs 
+import itertools 
 celery = get_celery()
 
 queries = ["Barack", "McCain",
@@ -81,7 +82,7 @@ def resolve_all_documents(item):
 	if not isinstance(item, AsyncPlaceholder):
 		return item 
 
-	return item.resolve()
+	return list(itertools.chain.from_iterable(item.resolve()))
  
 for c, q in enumerate(queries):
 
