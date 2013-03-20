@@ -70,10 +70,9 @@ def get_celery():
 	return celery
 
 def recursive_map(iterable, func):
-	ret = []
 	if hasattr(iterable, '__iter__'):
-		for i in iterable:
-			ret.append(recursive_map(i, func))
+		for i, item in enumerate(iterable):
+			iterable[i] = func(item)
 		return ret 
 	else:
 		return func(iterable)
