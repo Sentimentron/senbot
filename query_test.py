@@ -92,13 +92,15 @@ def perform_document_link_resolution(documents):
 def perform_document_sentiment_resolution(documents):
     return group(get_document_sentiment.subtask((d,)) for d in documents).apply_async()
 
-def resolve_document_sentiment(results):
+def perform_document_coverage_estimation(documents):
+    return group(get_coverage_estimate.subtask((d,)) for d in documents).apply_async()
+
+def resolve_document_property(results):
     ret = {}
     for doc in results.iterate():
         doc_id, sen = doc 
         ret[doc_id] = sen 
     return ret 
-
 
 def perform_phrase_relevance_resolution(documents, keywords_dict):
     return group(get_phrase_relevance.subtask((d, keywords_dict[d])) for d in documents).apply_async()
@@ -244,7 +246,9 @@ for c, q in enumerate(queries):
     sen_results  = perform_document_sentiment_resolution(inter)
     link_results = perform_document_link_resolution(inter)
     phrase_results = perform_phrase_relevance_resolution(inter, doc_keywords_dict)
+    coverage_res = perform_document_coverage_estimation(inter)
     print resolve_document_dates(date_results)
-    print resolve_document_sentiment(sen_results)
+    print resolve_document_property(sen_results)
     print resolve_phrase_relevance(phrase_results)
     print resolve_document_links(link_results)
+    print resolve_document_property(coverage_res)

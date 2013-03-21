@@ -109,6 +109,50 @@ class ProdKeywordDocsResolve(DatabaseTask):
 
 get_keyword_docs = registry.tasks[ProdKeywordDocsResolve.name]
 
+class CoverageEstimationTask(DatabaseTask):
+
+    def run(self, doc_id):
+        total, covered = 0, 0
+        domain_id = 0
+        session = Session(bind = self.engine)
+
+        sql = """SELECT COUNT(*) FROM links_absolute 
+        WHERE links_absolute.document_id = %d""" % (doc_id,)
+        for subcount, in session.execute(sql):
+            total += subcount
+
+        sql = """SELECT COUNT(*) FROM documents 
+            JOIN articles ON documents.article_id = articles.id, 
+            links_absolute 
+            WHERE links_absolute.path = articles.path 
+            AND links_absolute.domain_id = articles.domain_id
+            AND links_absolute.document_id = %d""" % (doc_id,)
+        for subcount, in session.execute(sql):
+            covered += subcount 
+
+        sql = """SELECT COUNT(*) FROM links_relative
+        WHERE links_relative.document_id = %d""" (doc_id,)
+        for subcount, in session.execute(sql):
+            total += subcount 
+
+        sql = """SELECT articles.domain_id FROM articles 
+        JOIN documents ON articles.id = documents.article_id
+        WHERE documents.id = %d""" % (doc_id,)
+        for domain_id, in session.execute(sql):
+            pass 
+
+        sql = """SELECT COUNT(*) FROM documents
+        JOIN articles ON documents.article_id = articles.id 
+        WHERE links_relative.path = articles.path 
+        AND articles.domain_id = %d""" % (domain_id,)
+
+        for subcount, in session.execute(sql):
+            covered += subcount 
+
+        return doc_id, 100.0 * covered / total 
+
+get_coverage_estimate = registry.tasks[CoverageEstimationTask.name]
+
 class ProdDocLinksSummary(DatabaseTask):
 
     def run(self, doc_id):
