@@ -7,7 +7,6 @@ from celery import chain
 from celery.result import AsyncResult
 from celery.exceptions import TimeoutError
 import types
-from sqlalc
 from tasks import get_site_id, get_site_docs, get_keyword_id, get_keyword_docs, get_document_date 
 import itertools 
 celery = get_celery()
@@ -90,7 +89,7 @@ def resolve_document_dates(result):
     ret = {}
     for _id, method, date in (r.get() for r in result):
         ret[_id] = (method, date)
-
+        print _id, method, date
     return ret 
 
 def perform_site_docs_resolution(item):
@@ -202,4 +201,5 @@ for c, q in enumerate(queries):
     inter = combine_retrieved_documents(inter)
 
     # Build the document properties dict
-
+    date_results = perform_document_date_resolution(inter)
+    print resolve_document_dates(date_results)
