@@ -200,6 +200,24 @@ class PhraseRelevanceFromKeywordDocId(DatabaseTask):
 
 get_phrase_relevance = registry.tasks[PhraseRelevanceFromKeywordDocId.name]
 
+class DocumentSentimentFromId(DatabaseTask):
+
+    def run(self, doc_id):
+
+        session = SEssion(bind = self.engine)
+        ret = None 
+
+        sql = """SELECT pos_phrases, neg_phrases, pos_sentences, neg_sentences
+            FROM documents 
+            WHERE documents.id = %d""" % (doc_id, )
+
+        for pos_phrases, neg_phrases, pos_sentences, neg_sentences in session.execute(sql):
+            ret = (pos_phrases, neg_phrases, pos_sentences, neg_sentences)
+
+        return doc_id, ret 
+
+get_document_sentiment = registry.tasks[DocumentSentimentFromId.name]
+
 class PhraseMatchFromKeyword(DatabaseTask):
 
     def run(self, keyword_id):
