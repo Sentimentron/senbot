@@ -148,6 +148,8 @@ class ProdDocLinksSummary(DatabaseTask):
         session.close()
         return (doc_id, ret, domain)
 
+get_document_links = registry.tasks[ProdDocLinksSummary.name]
+
 class ProdDocPublished(DatabaseTask):
 
     def run(self, document_id):

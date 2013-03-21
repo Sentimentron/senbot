@@ -7,7 +7,7 @@ from celery import chain
 from celery.result import AsyncResult
 from celery.exceptions import TimeoutError
 import types
-from tasks import get_site_id, get_site_docs, get_keyword_id, get_keyword_docs, get_document_date 
+from tasks import get_site_id, get_site_docs, get_keyword_id, get_keyword_docs, get_document_date, get_document_links
 import itertools 
 celery = get_celery()
 
@@ -82,8 +82,9 @@ def perform_keywordlt_docs_resolution(keyword):
 
 def perform_document_date_resolution(documents):
     return [get_document_date.delay((d)) for d in documents]
-    #g = group(get_document_date.subtask(d) for d in documents).apply_async()
-    #return g 
+
+def preform_document_link_resolution(documents):
+    return group(get_document_links.subtask((d)) for d in documents)
 
 def resolve_document_dates(result):
     ret = {}
@@ -202,4 +203,5 @@ for c, q in enumerate(queries):
 
     # Build the document properties dict
     date_results = perform_document_date_resolution(inter)
+    link_results = preform_document_link_resolution(inter)
     print resolve_document_dates(date_results)
