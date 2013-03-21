@@ -9,6 +9,7 @@ from celery.exceptions import TimeoutError
 import types
 from tasks import get_site_id, get_site_docs, get_keyword_id, get_keyword_docs, get_document_date, get_document_links
 import itertools 
+from collections import Counter 
 celery = get_celery()
 
 queries = ["Barack", "McCain",
@@ -85,6 +86,16 @@ def perform_document_date_resolution(documents):
 
 def preform_document_link_resolution(documents):
     return group(get_document_links.subtask((d)) for d in documents)
+
+def resolve_document_links(results):
+    ret = {}
+    for item in results.iterate():
+        _id, links, domain = item 
+        if domain not in ret:
+            ret[domain] = Counter()
+        cur = ret[domain]
+        cur += links 
+    return ret 
 
 def resolve_document_dates(result):
     ret = {}
@@ -205,3 +216,4 @@ for c, q in enumerate(queries):
     date_results = perform_document_date_resolution(inter)
     link_results = preform_document_link_resolution(inter)
     print resolve_document_dates(date_results)
+    print resolve_link_results(link_results)
