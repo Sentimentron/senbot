@@ -7,8 +7,8 @@ from celery import chain, group
 from celery.result import AsyncResult
 from celery.exceptions import TimeoutError
 import types
-from tasks import get_site_id, get_site_docs, /
-    get_keyword_id, get_keyword_docs, get_document_date, /
+from tasks import get_site_id, get_site_docs, \
+    get_keyword_id, get_keyword_docs, get_document_date, \
     get_document_links, get_phrase_relevance, get_document_sentiment
 import itertools 
 from collections import Counter 

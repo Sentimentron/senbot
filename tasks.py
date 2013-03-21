@@ -186,13 +186,13 @@ class PhraseRelevanceFromKeywordDocId(DatabaseTask):
         ret = None 
 
         sql = """SELECT COUNT(*) FROM documents 
-            JOIN sentences ON sentences.document = documents.doc_id 
+            JOIN sentences ON sentences.document = documents.id 
             JOIN phrases ON phrases.sentence = sentences.id 
             JOIN keyword_incidences ON keyword_incidences.phrase_id = phrases.id 
             WHERE keyword_incidences.keyword_id IN (%s)
             AND documents.id = %d""" % (','.join([str(i) for i in keyword_identifiers]), doc_id)
 
-        for count, in sql:
+        for count, in session.execute(sql):
             ret = int(count)
 
         session.close()
@@ -204,7 +204,7 @@ class DocumentSentimentFromId(DatabaseTask):
 
     def run(self, doc_id):
 
-        session = SEssion(bind = self.engine)
+        session = Session(bind = self.engine)
         ret = None 
 
         sql = """SELECT pos_phrases, neg_phrases, pos_sentences, neg_sentences
