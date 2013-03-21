@@ -193,7 +193,7 @@ class PhraseRelevanceFromKeywordDocId(DatabaseTask):
             AND documents.id = %d""" % (','.join([str(i) for i in keyword_identifiers]), doc_id)
 
         for count, in sql:
-            ret = count 
+            ret = int(count)
 
         session.close()
         return (doc_id, ret)

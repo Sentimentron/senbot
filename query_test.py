@@ -107,7 +107,7 @@ def resolve_phrase_relevance(results):
     ret = {}
     for item in results.iterate():
         doc_id, count = item 
-        ret[doc_id] = count
+        ret[doc_id] = int(count)
     return ret 
 
 def resolve_document_dates(result):
