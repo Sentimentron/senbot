@@ -87,8 +87,8 @@ def perform_document_date_resolution(documents):
 def perform_document_link_resolution(documents):
     return group(get_document_links.subtask((d,)) for d in documents).apply_async()
 
-def perform_phrase_relevance_resolution(documents):
-    return group(get_phrase_relevance.subtask((d,)) for d in documents)
+def perform_phrase_relevance_resolution(documents, document_keywords_dict):
+    return group(get_phrase_relevance.subtask((d, document_keywords_dict[d])) for d in documents)
 
 def resolve_document_links(results):
     ret = {}
@@ -228,7 +228,7 @@ for c, q in enumerate(queries):
     # Build the document properties dict
     date_results = perform_document_date_resolution(inter)
     link_results = perform_document_link_resolution(inter)
-    phrase_results = perform_phrase_relevance_resolution(inter)
+    phrase_results = perform_phrase_relevance_resolution(inter, doc_keywords_dict)
     print resolve_document_dates(date_results)
     print resolve_link_results(link_results)
     print resolve_phrase_relevance(phrase_results)
