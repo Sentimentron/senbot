@@ -192,7 +192,7 @@ class PhraseRelevanceFromKeywordDocId(DatabaseTask):
             WHERE keyword_incidences.keyword_id IN (%s)
             AND documents.id = %d""" % (','.join([str(i) for i in keyword_identifiers]), doc_id)
 
-        for count, in sql:
+        for count, in session.execute(sql):
             ret = int(count)
 
         session.close()
