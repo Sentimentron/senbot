@@ -124,6 +124,7 @@ class ProdDocLinksSummary(DatabaseTask):
         for key, count in session.execute(sql):
             ret[key] = count 
 
+        logging.info("Fetching domain key for %d", doc_id)
         sql = """SELECT domains.`key` FROM domains 
         JOIN articles ON articles.domain_id = domains.id
         JOIN documents ON documents.article_id = articles.id
@@ -145,7 +146,7 @@ class ProdDocLinksSummary(DatabaseTask):
             ret[domain] += count 
 
         session.close()
-        return ret 
+        return (doc_id, ret, domain)
 
 class ProdDocPublished(DatabaseTask):
 
