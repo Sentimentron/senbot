@@ -88,7 +88,7 @@ def perform_document_link_resolution(documents):
     return group(get_document_links.subtask((d,)) for d in documents).apply_async()
 
 def perform_phrase_relevance_resolution(documents, keywords_dict):
-    return group(get_phrase_relevance.subtask((d, keyword_dict[d])) for d in documents).apply_async()
+    return group(get_phrase_relevance.subtask((d, keywords_dict[d])) for d in documents).apply_async()
 
 def resolve_document_links(results):
     ret = {}

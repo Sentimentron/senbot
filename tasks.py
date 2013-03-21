@@ -181,7 +181,7 @@ get_document_date = registry.tasks[ProdDocPublished.name]
 
 class PhraseRelevanceFromKeywordDocId(DatabaseTask):
 
-    def run(self, keyword_identifiers, doc_id):
+    def run(self, doc_id, keyword_identifiers):
         session = Session(bind = self.engine)
         ret = None 
 
