@@ -10,7 +10,8 @@ import types
 from tasks import get_site_id, get_site_docs, \
     get_keyword_id, get_keyword_docs, get_document_date, \
     get_document_links, get_phrase_relevance, \
-    get_document_sentiment, get_coverage_estimate
+    get_document_sentiment, get_coverage_estimate, \
+    get_document_terms
 import itertools 
 from collections import Counter 
 celery = get_celery()
@@ -95,6 +96,9 @@ def perform_document_sentiment_resolution(documents):
 
 def perform_document_coverage_estimation(documents):
     return group(get_coverage_estimate.subtask((d,)) for d in documents).apply_async()
+
+def perform_document_keyterm_extraction(documents):
+    return group(get_document_terms.subtask((d,)) for d in documents).apply_async()
 
 def resolve_document_property(results):
     ret = {}
@@ -248,8 +252,10 @@ for c, q in enumerate(queries):
     link_results = perform_document_link_resolution(inter)
     phrase_results = perform_phrase_relevance_resolution(inter, doc_keywords_dict)
     coverage_res = perform_document_coverage_estimation(inter)
+    doc_terms    = perform_document_keyterm_extraction(inter)
     print resolve_document_dates(date_results)
     print resolve_document_property(sen_results)
     print resolve_phrase_relevance(phrase_results)
     print resolve_document_links(link_results)
     print resolve_document_property(coverage_res)
+    print resolve_document_property(doc_terms)

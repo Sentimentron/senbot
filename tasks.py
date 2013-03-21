@@ -266,6 +266,36 @@ class DocumentSentimentFromId(DatabaseTask):
 
 get_document_sentiment = registry.tasks[DocumentSentimentFromId.name]
 
+class GetDocumentKeywordSpans(DatabaseTask):
+
+    def run(self, doc_id):
+
+        con = self.engine.connect()
+        sql = """SELECT COUNT(*) AS c, keyword_adjacencies.key1_id, keywords1.word, keyword_adjacencies.key2_id, keywords2.word FROM keyword_adjacencies 
+        JOIN keywords AS keywords1 ON keywords1.id = key1_id 
+        JOIN keywords AS keywords2 ON keywords2.id = key2_id
+        WHERE keyword_adjacencies.doc_id = %d
+        GROUP BY key1_id, key2_id 
+        ORDER BY c DESC LIMIT 0,5""" % (doc_id,)
+
+        word_forms = {}
+        for c, key1, word1, key2, word2 in con.execute(sql):
+            word1, word2 = [x.lower() for x in [word1, word2]]
+            if word1 in word_forms:
+                form = word_forms[word1]
+                form.append(word2)
+                word_forms.pop(word1, None)
+                word_forms[word2] = form 
+            else:
+                word_forms[word2] = [word1, word2]
+
+        terms = [' '.join(word_forms[w]) for w in word_forms]
+        con.close()
+
+        return doc_id, terms 
+
+get_document_terms = registry.tasks[GetDocumentKeywordSpans.name]
+
 class PhraseMatchFromKeyword(DatabaseTask):
 
     def run(self, keyword_id):
