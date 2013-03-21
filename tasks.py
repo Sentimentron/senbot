@@ -33,7 +33,6 @@ class DatabaseTask(Task):
         self.engine = get_database_engine_string()
         self.engine = create_engine(self.engine, 
             pool_recycle=60*60,
-            poolclass=AssertionPool,
             isolation_level="READ UNCOMMITTED")
 
 class ProdKWIdentityResolve(DatabaseTask):
@@ -59,10 +58,10 @@ class ProdSiteIdentityResolve(DatabaseTask):
 
         con = self.engine.connect()
         sql = """SELECT id FROM domains 
-            WHERE `key` LIKE "%%%s"
-        """ % (domain,)
+            WHERE `key` LIKE %s
+        """
         ret = set([])
-        for _id, in con.execute(sql):
+        for _id, in con.execute(sql, '%'+domain):
             ret.add(_id)
 
         con.close()
@@ -108,50 +107,6 @@ class ProdKeywordDocsResolve(DatabaseTask):
         return keyword_id, ret 
 
 get_keyword_docs = registry.tasks[ProdKeywordDocsResolve.name]
-
-class CoverageEstimationTask(DatabaseTask):
-
-    def run(self, doc_id):
-        total, covered = 0, 0
-        domain_id = 0
-
-        con = self.engine.connect()
-        sql = """SELECT COUNT(*) FROM links_absolute 
-        WHERE links_absolute.document_id = %d""" % (doc_id,)
-        for subcount, in con.execute(sql):
-            total += subcount
-
-        sql = """SELECT COUNT(*) FROM documents 
-            JOIN articles ON documents.article_id = articles.id 
-            JOIN links_absolute ON links_absolute.domain_id = articles.domain_id 
-            WHERE links_absolute.path = articles.path 
-            AND links_absolute.document_id = %d""" % (doc_id,)
-        for subcount, in con.execute(sql):
-            covered += subcount 
-
-        sql = """SELECT COUNT(*) FROM links_relative
-        WHERE links_relative.document_id = %d""" % (doc_id,)
-        for subcount, in con.execute(sql):
-            total += subcount 
-
-        sql = """SELECT articles.domain_id FROM articles 
-        JOIN documents ON articles.id = documents.article_id
-        WHERE documents.id = %d""" % (doc_id,)
-        for domain_id, in con.execute(sql):
-            pass 
-
-        sql = """SELECT COUNT(*) FROM documents
-        JOIN articles ON documents.article_id = articles.id 
-        JOIN links_relative ON links_relative.path = articles.path
-        WHERE articles.domain_id = %d""" % (domain_id,)
-
-        for subcount, in con.execute(sql):
-            covered += subcount 
-
-        con.close()
-        return doc_id, 100.0 * covered / max(total, 1) 
-
-get_coverage_estimate = registry.tasks[CoverageEstimationTask.name]
 
 class ProdDocLinksSummary(DatabaseTask):
 
@@ -295,30 +250,4 @@ class GetDocumentKeywordSpans(DatabaseTask):
         return doc_id, terms 
 
 get_document_terms = registry.tasks[GetDocumentKeywordSpans.name]
-
-class PhraseMatchFromKeyword(DatabaseTask):
-
-    def run(self, keyword_id):
-        session = Session(bind=self.engine)
-        ret = set([])
-        it  = session.query(KeywordIncidence).filter_by(keyword_id = keyword_id)
-        for thing in it:
-            ret.add(thing.phrase_id)
-
-        session.close()
-        return ret 
-
-class GetPhrasesFromDocID(DatabaseTask):
-
-    def run(self, document_id):
-        session = Session(bind=self.engine)
-        ret     = set([])
-        doc     = session.query(Document).get(document_id)
-        
-        for sentence in doc.sentences:
-            for phrase in sentence.phrases:
-                ret.add(phrase)
-
-        session.close()
-        return ret 
 
