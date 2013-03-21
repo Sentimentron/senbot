@@ -180,6 +180,26 @@ class ProdDocPublished(DatabaseTask):
 
 get_document_date = registry.tasks[ProdDocPublished.name]
 
+class PhraseRelevanceFromKeywordDocId(DatabaseTask):
+
+    def run(self, keyword_identifiers, doc_id):
+        session = Session(bind = self.engine)
+        ret = None 
+
+        sql = """SELECT COUNT(*) FROM documents 
+            JOIN sentences ON sentences.document = documents.doc_id 
+            JOIN phrases ON phrases.sentence = sentences.id 
+            JOIN keyword_incidences ON keyword_incidences.phrase_id = phrases.id 
+            WHERE keyword_incidences.keyword_id IN (%s)
+            AND documents.id = %d""" % (','.join([str(i) for i in keyword_identifiers]), doc_id)
+
+        for count, in sql:
+            ret = count 
+
+        session.close()
+        return ret 
+
+
 class PhraseMatchFromKeyword(DatabaseTask):
 
     def run(self, keyword_id):
