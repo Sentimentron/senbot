@@ -197,8 +197,9 @@ class PhraseRelevanceFromKeywordDocId(DatabaseTask):
             ret = count 
 
         session.close()
-        return ret 
+        return (doc_id, ret)
 
+get_phrase_relevance = registry.tasks[PhraseRelevanceFromKeywordDocId.name]
 
 class PhraseMatchFromKeyword(DatabaseTask):
 

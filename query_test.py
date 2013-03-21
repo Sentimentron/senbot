@@ -7,7 +7,7 @@ from celery import chain
 from celery.result import AsyncResult
 from celery.exceptions import TimeoutError
 import types
-from tasks import get_site_id, get_site_docs, get_keyword_id, get_keyword_docs, get_document_date, get_document_links
+from tasks import get_site_id, get_site_docs, get_keyword_id, get_keyword_docs, get_document_date, get_document_links, get_phrase_relevance
 import itertools 
 from collections import Counter 
 celery = get_celery()
@@ -87,6 +87,9 @@ def perform_document_date_resolution(documents):
 def perform_document_link_resolution(documents):
     return group(get_document_links.subtask((d)) for d in documents)
 
+def perform_phrase_relevance_resolution(documents):
+    return group(get_phrase_relevance.subtask((d)) for d in documents)
+
 def resolve_document_links(results):
     ret = {}
     for item in results.iterate():
@@ -95,6 +98,13 @@ def resolve_document_links(results):
             ret[domain] = Counter()
         cur = ret[domain]
         cur += links 
+    return ret 
+
+def resolve_phrase_relevance(results):
+    ret = {}
+    for item in results.iterate():
+        doc_id, count = item 
+        ret[doc_id] = count
     return ret 
 
 def resolve_document_dates(result):
@@ -215,5 +225,7 @@ for c, q in enumerate(queries):
     # Build the document properties dict
     date_results = perform_document_date_resolution(inter)
     link_results = perform_document_link_resolution(inter)
+    phrase_results = perform_phrase_relevance_resolution(inter)
     print resolve_document_dates(date_results)
     print resolve_link_results(link_results)
+    print resolve_phrase_relevance(phrase_results)
