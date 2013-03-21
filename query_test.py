@@ -84,7 +84,7 @@ def perform_keywordlt_docs_resolution(keyword):
 def perform_document_date_resolution(documents):
     return [get_document_date.delay((d)) for d in documents]
 
-def preform_document_link_resolution(documents):
+def perform_document_link_resolution(documents):
     return group(get_document_links.subtask((d)) for d in documents)
 
 def resolve_document_links(results):
@@ -214,6 +214,6 @@ for c, q in enumerate(queries):
 
     # Build the document properties dict
     date_results = perform_document_date_resolution(inter)
-    link_results = preform_document_link_resolution(inter)
+    link_results = perform_document_link_resolution(inter)
     print resolve_document_dates(date_results)
     print resolve_link_results(link_results)
