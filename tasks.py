@@ -35,8 +35,7 @@ class DatabaseTask(Task):
         self.engine = create_engine(self.engine, 
             poolclass=SingletonThreadPool, 
             pool_recycle=5, 
-            isolation_level="READ UNCOMMITTED",
-            connect_args={"reconnect": True}))
+            isolation_level="READ UNCOMMITTED")
 
 class ProdKWIdentityResolve(DatabaseTask):
 
@@ -116,8 +115,8 @@ class ProdDocLinksSummary(DatabaseTask):
 
         sql = """SELECT domains.`key`, COUNT(*) FROM links_absolute
             JOIN domains ON links_absolute.domain_id = domains.id 
-            GROUP BY (domains.id)
-            WHERE links_absolute.document_id = %d""" % (doc_id,)
+            WHERE links_absolute.document_id = %d
+            GROUP BY (domains.id)""" % (doc_id,)
 
         ret = {}
         session = Session(bind=self.engine)
@@ -133,7 +132,7 @@ class ProdDocLinksSummary(DatabaseTask):
             pass 
 
         sql = """SELECT COUNT(*) FROM links_relative WHERE document_id = %d"""
-        for count, in session.execute(sql):
+        for count, in session.execute(sql % (doc_id,)):
             pass 
 
         assert domain != None 

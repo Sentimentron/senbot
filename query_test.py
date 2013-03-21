@@ -3,7 +3,7 @@
 from parsing.models import *
 from parsing.parser import *
 from core import recursive_map, get_celery
-from celery import chain
+from celery import chain, group
 from celery.result import AsyncResult
 from celery.exceptions import TimeoutError
 import types
@@ -85,19 +85,22 @@ def perform_document_date_resolution(documents):
     return [get_document_date.delay((d)) for d in documents]
 
 def perform_document_link_resolution(documents):
-    return group(get_document_links.subtask((d)) for d in documents)
+    return group(get_document_links.subtask((d,)) for d in documents).apply_async()
 
 def perform_phrase_relevance_resolution(documents):
-    return group(get_phrase_relevance.subtask((d)) for d in documents)
+    return group(get_phrase_relevance.subtask((d,)) for d in documents)
 
 def resolve_document_links(results):
     ret = {}
     for item in results.iterate():
         _id, links, domain = item 
         if domain not in ret:
-            ret[domain] = Counter()
+            ret[domain] = {}
         cur = ret[domain]
-        cur += links 
+        for key in links:
+            if key not in cur:
+                cur[key] = 0
+            cur[key] += links[key] 
     return ret 
 
 def resolve_phrase_relevance(results):
@@ -229,3 +232,4 @@ for c, q in enumerate(queries):
     print resolve_document_dates(date_results)
     print resolve_link_results(link_results)
     print resolve_phrase_relevance(phrase_results)
+    print resolve_document_links(link_results)
