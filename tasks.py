@@ -10,9 +10,8 @@ from sqlalchemy.exc import *
 from sqlalchemy.orm import * 
 from sqlalchemy.orm.exc import *
 from sqlalchemy.orm.session import Session 
-from sqlalchemy.pool import SingletonThreadPool
+from sqlalchemy.pool import *
 import cPickle as pickle
-import MySQLdb.cursors
 import string 
 
 logging = get_task_logger(__name__)
@@ -33,8 +32,8 @@ class DatabaseTask(Task):
     def __init__(self):
         self.engine = get_database_engine_string()
         self.engine = create_engine(self.engine, 
-            poolclass=SingletonThreadPool, 
-            pool_recycle=5, 
+            pool_recycle=60*60,
+            poolclass=AssertionPool,
             isolation_level="READ UNCOMMITTED")
 
 class ProdKWIdentityResolve(DatabaseTask):
@@ -57,16 +56,17 @@ get_keyword_id = registry.tasks[ProdKWIdentityResolve.name]
 class ProdSiteIdentityResolve(DatabaseTask):
 
     def run(self, domain):
-        session = Session(bind = self.engine)
 
+        con = self.engine.connect()
         sql = """SELECT id FROM domains 
             WHERE `key` LIKE "%%%s"
         """ % (domain,)
         ret = set([])
-        for _id, in session.execute(sql):
+        for _id, in con.execute(sql):
             ret.add(_id)
 
-        return ret 
+        con.close()
+        return ret
 
 get_site_id = registry.tasks[ProdSiteIdentityResolve.name]
 
@@ -75,7 +75,7 @@ class ProdSiteDocsResolve(DatabaseTask):
     def run(self, domain_ids):
 
         ret = set([])
-        session = Session(bind = self.engine)
+        con = self.engine.connect()
         for domain_id in domain_ids:
             sql = """SELECT MAX(documents.id) FROM documents
                 JOIN articles ON documents.article_id = articles.id 
@@ -83,10 +83,10 @@ class ProdSiteDocsResolve(DatabaseTask):
                 GROUP BY articles.id""" % (domain_id, )
 
             print sql
-            for _id, in session.execute(sql):
+            for _id, in con.execute(sql):
                 ret.add(_id)
 
-            session.close()
+        con.close()
         return ret
 
 get_site_docs = registry.tasks[ProdSiteDocsResolve.name]
@@ -99,12 +99,12 @@ class ProdKeywordDocsResolve(DatabaseTask):
         JOIN keyword_adjacencies ON keyword_adjacencies.doc_id = documents.id 
         WHERE key1_id = %d OR key2_id = %d""" % (keyword_id, keyword_id)
 
-        session = Session(bind = self.engine)
+        con = self.engine.connect()
         ret = set([])
-        for _id, in session.execute(sql):
+        for _id, in con.execute(sql):
             ret.add(_id)
 
-        session.close()
+        con.close()
         return keyword_id, ret 
 
 get_keyword_docs = registry.tasks[ProdKeywordDocsResolve.name]
@@ -114,42 +114,42 @@ class CoverageEstimationTask(DatabaseTask):
     def run(self, doc_id):
         total, covered = 0, 0
         domain_id = 0
-        session = Session(bind = self.engine)
 
+        con = self.engine.connect()
         sql = """SELECT COUNT(*) FROM links_absolute 
         WHERE links_absolute.document_id = %d""" % (doc_id,)
-        for subcount, in session.execute(sql):
+        for subcount, in con.execute(sql):
             total += subcount
 
         sql = """SELECT COUNT(*) FROM documents 
-            JOIN articles ON documents.article_id = articles.id, 
-            links_absolute 
+            JOIN articles ON documents.article_id = articles.id 
+            JOIN links_absolute ON links_absolute.domain_id = articles.domain_id 
             WHERE links_absolute.path = articles.path 
-            AND links_absolute.domain_id = articles.domain_id
             AND links_absolute.document_id = %d""" % (doc_id,)
-        for subcount, in session.execute(sql):
+        for subcount, in con.execute(sql):
             covered += subcount 
 
         sql = """SELECT COUNT(*) FROM links_relative
-        WHERE links_relative.document_id = %d""" (doc_id,)
-        for subcount, in session.execute(sql):
+        WHERE links_relative.document_id = %d""" % (doc_id,)
+        for subcount, in con.execute(sql):
             total += subcount 
 
         sql = """SELECT articles.domain_id FROM articles 
         JOIN documents ON articles.id = documents.article_id
         WHERE documents.id = %d""" % (doc_id,)
-        for domain_id, in session.execute(sql):
+        for domain_id, in con.execute(sql):
             pass 
 
         sql = """SELECT COUNT(*) FROM documents
         JOIN articles ON documents.article_id = articles.id 
-        WHERE links_relative.path = articles.path 
-        AND articles.domain_id = %d""" % (domain_id,)
+        JOIN links_relative ON links_relative.path = articles.path
+        WHERE articles.domain_id = %d""" % (domain_id,)
 
-        for subcount, in session.execute(sql):
+        for subcount, in con.execute(sql):
             covered += subcount 
 
-        return doc_id, 100.0 * covered / total 
+        con.close()
+        return doc_id, 100.0 * covered / max(total, 1) 
 
 get_coverage_estimate = registry.tasks[CoverageEstimationTask.name]
 
@@ -163,8 +163,8 @@ class ProdDocLinksSummary(DatabaseTask):
             GROUP BY (domains.id)""" % (doc_id,)
 
         ret = {}
-        session = Session(bind=self.engine)
-        for key, count in session.execute(sql):
+        con = self.engine.connect()
+        for key, count in con.execute(sql):
             ret[key] = count 
 
         logging.info("Fetching domain key for %d", doc_id)
@@ -172,11 +172,11 @@ class ProdDocLinksSummary(DatabaseTask):
         JOIN articles ON articles.domain_id = domains.id
         JOIN documents ON documents.article_id = articles.id
         WHERE documents.id = %d""" % (doc_id,)
-        for domain, in session.execute(sql):
+        for domain, in con.execute(sql):
             pass 
 
         sql = """SELECT COUNT(*) FROM links_relative WHERE document_id = %d"""
-        for count, in session.execute(sql % (doc_id,)):
+        for count, in con.execute(sql % (doc_id,)):
             pass 
 
         assert domain != None 
@@ -188,7 +188,7 @@ class ProdDocLinksSummary(DatabaseTask):
 
             ret[domain] += count 
 
-        session.close()
+        con.close()
         return (doc_id, ret, domain)
 
 get_document_links = registry.tasks[ProdDocLinksSummary.name]
@@ -196,29 +196,32 @@ get_document_links = registry.tasks[ProdDocLinksSummary.name]
 class ProdDocPublished(DatabaseTask):
 
     def run(self, document_id):
-        session = Session(bind = self.engine)
-        
+        con = self.engine.connect() 
         # Certain date resolution
         sql = """SELECT certain_dates.date FROM certain_dates
         WHERE doc_id = %d""" % (document_id, ) 
         print sql 
-        for date, in session.execute(sql):
+        for date, in con.execute(sql):
+            con.close()
             return document_id, "Certain", date 
 
         # Uncertain date resolution
         sql = """SELECT uncertain_dates.date FROM uncertain_dates 
         WHERE doc_id = %d""" % (document_id, )
         print sql 
-        for date, in session.execute(sql):
+        for date, in con.execute(sql):
+            con.close()
             return document_id, "Uncertain", date 
 
         sql = """SELECT articles.crawled FROM articles 
             JOIN documents ON documents.article_id = articles.id 
             WHERE documents.id = %d""" % (document_id,)
         print sql
-        for date, in session.execute(sql):
+        for date, in con.execute(sql):
+            con.close()
             return document_id, "Crawled", date 
 
+        con.close()
         raise AssertionError("Shouldn't be here!")
 
 get_document_date = registry.tasks[ProdDocPublished.name]
@@ -226,7 +229,6 @@ get_document_date = registry.tasks[ProdDocPublished.name]
 class PhraseRelevanceFromKeywordDocId(DatabaseTask):
 
     def run(self, doc_id, keyword_identifiers):
-        session = Session(bind = self.engine)
         ret = None 
 
         sql = """SELECT COUNT(*) FROM documents 
@@ -236,10 +238,12 @@ class PhraseRelevanceFromKeywordDocId(DatabaseTask):
             WHERE keyword_incidences.keyword_id IN (%s)
             AND documents.id = %d""" % (','.join([str(i) for i in keyword_identifiers]), doc_id)
 
-        for count, in session.execute(sql):
+        con = self.engine.connect()
+
+        for count, in con.execute(sql):
             ret = int(count)
 
-        session.close()
+        con.close()
         return (doc_id, ret)
 
 get_phrase_relevance = registry.tasks[PhraseRelevanceFromKeywordDocId.name]
@@ -248,14 +252,14 @@ class DocumentSentimentFromId(DatabaseTask):
 
     def run(self, doc_id):
 
-        session = Session(bind = self.engine)
+        con = self.engine.connect()
         ret = None 
 
         sql = """SELECT pos_phrases, neg_phrases, pos_sentences, neg_sentences
             FROM documents 
             WHERE documents.id = %d""" % (doc_id, )
 
-        for pos_phrases, neg_phrases, pos_sentences, neg_sentences in session.execute(sql):
+        for pos_phrases, neg_phrases, pos_sentences, neg_sentences in con.execute(sql):
             ret = (pos_phrases, neg_phrases, pos_sentences, neg_sentences)
 
         return doc_id, ret 

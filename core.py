@@ -3,7 +3,7 @@
 import logging
 import os
 
-DB_PROT="mysql"
+DB_PROT="mysql+pymysql"
 DB_NAME="sentimentron"
 
 LOG_LEVELS = {'debug': logging.DEBUG,
