@@ -32,7 +32,11 @@ class DatabaseTask(Task):
 
     def __init__(self):
         self.engine = get_database_engine_string()
-        self.engine = create_engine(self.engine, poolclass=SingletonThreadPool, pool_recycle=5, isolation_level="READ COMMITTED"))
+        self.engine = create_engine(self.engine, 
+            poolclass=SingletonThreadPool, 
+            pool_recycle=5, 
+            isolation_level="READ UNCOMMITTED",
+            connect_args={"reconnect": True}))
 
 class ProdKWIdentityResolve(DatabaseTask):
 
