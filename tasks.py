@@ -154,7 +154,9 @@ class ProdDocPublished(DatabaseTask):
         con = self.engine.connect() 
         # Certain date resolution
         sql = """SELECT certain_dates.date FROM certain_dates
-        WHERE doc_id = %d""" % (document_id, ) 
+        WHERE doc_id = %d
+        ORDER BY ABS(certain_dates.position-346)
+        LIMIT 1""" % (document_id, ) 
         print sql 
         for date, in con.execute(sql):
             con.close()
@@ -162,7 +164,9 @@ class ProdDocPublished(DatabaseTask):
 
         # Uncertain date resolution
         sql = """SELECT uncertain_dates.date FROM uncertain_dates 
-        WHERE doc_id = %d""" % (document_id, )
+        WHERE doc_id = %d
+        ORDER BY ABS(uncertain_dates.position-307)
+        LIMIT 1""" % (document_id, )
         print sql 
         for date, in con.execute(sql):
             con.close()

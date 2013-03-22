@@ -12,10 +12,11 @@ from tasks import get_site_id, get_site_docs, \
     get_document_links, get_phrase_relevance, \
     get_document_sentiment, get_document_terms
 import itertools 
-from collections import Counter 
+from collections import Counter, defaultdict
 celery = get_celery()
 
 queries = ["Barack", "McCain",
+    "+\"Bill Gates\" AND arstechnica.com",
     "Barack AND foxnews.com",
     "+Barack AND McCain foxnews.com",
     "+Barack AND -\"McCain Oven Chips\" foxnews.com"
@@ -105,7 +106,7 @@ def resolve_document_property(results):
     return ret 
 
 def perform_phrase_relevance_resolution(documents, keywords_dict):
-    return group(get_phrase_relevance.subtask((d, keywords_dict[d])) for d in documents).apply_async()
+    return group(get_phrase_relevance.subtask((d, keywords_dict[d])) for d in documents if d in keywords_dict).apply_async()
 
 def resolve_document_links(results):
     ret = {}; dm_map = {}
@@ -150,15 +151,16 @@ def resolve_all_documents(item, doc_keywords_dict):
         return item 
 
     result = item.resolve()
+    print type(item)
     if isinstance(item, KeywordDocResolutionPlaceholder):
         keyword_id, docs = result 
         for d in docs:
             if d not in doc_keywords_dict:
                 doc_keywords_dict[d] = set([])
             doc_keywords_dict[d].add(keyword_id)
-        return docs 
+        return docs
 
-    return docs
+    return result
 
 def _combine_retrieved_documents(item):
     if not isinstance(item, Query):
@@ -188,15 +190,17 @@ def resolve_literal_documents(iterable, doc_keywords_dict):
     # Pull together things at this level 
     if isinstance(iterable, QueryKeywordModifier):
         kw = iterable.item 
-        iterable = type(iterable)(resolve_all_documents(kw, doc_keywords_dict))
+        iterable = resolve_all_documents(kw, doc_keywords_dict)
     
     return iterable 
 
 def combine_retrieved_documents(iterable):
-
+    prompt = False
     # If this is iterable, apply combine_retrieve_documents to all sublevels
     if hasattr(iterable, '__iter__'):
         # Need to check for literals
+        print iterable
+        prompt = True
         iterable = list(itertools.chain.from_iterable([combine_retrieved_documents(i) for i in iterable]))
         require  = [i for i in iterable if isinstance(i, QueryKeywordLiteralModifier)]
         exclude  = [i for i in iterable if isinstance(i, QueryKeywordExclusionModifier)]
@@ -207,15 +211,20 @@ def combine_retrieved_documents(iterable):
         if len(require) > 0:
             iterable = [i for i in iterable if i in require]
         if len(exclude) > 0:
-          iterable = [i for i in iterable if i not in exclude]
+            iterable = [i for i in iterable if i not in exclude]
     else:
+        prompt = False
         iterable = [iterable]
 
     # Pull together document identifiers if possible
     if isinstance(iterable, Query):
         iterable = iterable.aggregate()
 
+    if prompt:
+        raw_input(iterable)
     return iterable 
+
+combine_retrieved_documents(AndQuery([AndQuery([12,11]), [14, 11]]))
 
 for c, q in enumerate(queries):
 
@@ -241,6 +250,8 @@ for c, q in enumerate(queries):
     inter = recursive_map(inter, lambda x: resolve_all_documents(x, doc_keywords_dict))
     inter = recursive_map(inter, lambda x: resolve_literal_documents(x, doc_keywords_dict))
     inter = combine_retrieved_documents(inter)
+    print inter
+    sys.exit(0)
 
     # 
     # Build the document properties dict

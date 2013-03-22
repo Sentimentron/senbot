@@ -128,6 +128,8 @@ class OrQuery(Query):
 	def aggregate(self):
 		ret = None 
 		for i in self:
+            if isinstance(i, Query):
+                i = i.aggregate()
 			if ret is None:
 				ret = set(i)
 				continue 
@@ -138,6 +140,8 @@ class AndQuery(Query):
 	def aggregate(self):
 		ret = None
 		for i in self:
+            if isinstance(i, Query):
+                i = i.aggregate()
 			if ret is None:
 				ret = set(i)
 				continue 
@@ -149,6 +153,8 @@ class NotQuery(Query):
 	def aggregate(self):
 		ret = None 
 		for i in reversed(self):
+            if isinstance(i, Query):
+                i = i.aggregate()
 			if ret is None:
 				ret = set(i)
 				continue 
