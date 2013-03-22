@@ -130,7 +130,10 @@ class OrQuery(Query):
             if isinstance(i, Query):
                 i = i.aggregate()
             if ret is None:
-                ret = set(i)
+                try:
+                    ret = set(i)
+                except TypeError:
+                    return self._list 
                 continue 
             ret = ret.union(i)
         return list(ret)
@@ -139,15 +142,13 @@ class AndQuery(Query):
     def aggregate(self):
         ret = None
         for i in self:
-            print self, i
             if isinstance(i, Query):
                 i = i.aggregate()
-                print "AGGREGATE", i
             if ret is None:
                 try:
                     ret = set(i)
                 except TypeError:
-                    ret = set([i])
+                    return self._list 
                 continue 
             try:
                 ret = ret.intersection(i)
@@ -163,7 +164,10 @@ class NotQuery(Query):
             if isinstance(i, Query):
                 i = i.aggregate()
             if ret is None:
-                ret = set(i)
+                try:
+                    ret = set(i)
+                except TypeError:
+                    return self._list 
                 continue 
             ret = ret.difference(i)
         return list(ret)
