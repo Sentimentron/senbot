@@ -1,5 +1,7 @@
 #!/usr/bin/env python 
 
+from boto.ses.connection import SESConnection
+
 FOOTER = """
 <p>Sentimentron has removed your email from its database.<br />
 --<br />

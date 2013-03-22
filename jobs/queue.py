@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 
+import logging
 import boto.sqs 
 
+SQS_REGION = "us-east-1"
 QUERY_QUEUE_NAME = "query-queue"
 
 class QueryQueue(object):

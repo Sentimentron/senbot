@@ -1,28 +1,36 @@
 #!/usr/bin/env python
 
-import boto.s3
 import datetime
 import itertools 
 import json
+import logging
+import sys
 import time 
 import types
+
+import boto.s3
 
 from boto.s3.connection import S3Connection
 from boto.s3.key import Key
 from celery import chain, group
 from celery.exceptions import TimeoutError
 from celery.result import AsyncResult
-from core import recursive_map, get_celery
+from core import recursive_map, get_celery, get_database_engine_string, configure_logging
 from collections import Counter, defaultdict
 from parsing.models import *
 from parsing.parser import *
 from pyparsing import ParseException
+from sqlalchemy import create_engine
+from sqlalchemy.exc import *
+from sqlalchemy.orm import * 
+from sqlalchemy.orm.exc import *
+from sqlalchemy.orm.session import Session 
+from sqlalchemy.pool import SingletonThreadPool
 
 from models import UserQuery
 from jobs.queue import QueryQueue
 from jobs.messages import QueryException, QueryMessage
 from jobs.mail import EmailProcessor
-
 from tasks import get_site_id, get_site_docs, \
     get_keyword_id, get_keyword_docs, get_document_date, \
     get_document_links, get_phrase_relevance, \
@@ -384,14 +392,14 @@ def process_query(query_text, query_identifier):
         keywords  = resolve_document_property(doc_terms)
 
         yield QueryMessage("Writing results...")
-        output_to_s3_key(, dates, sentiment, phrases, links, dm_map, keywords, expansions, query_text, time.time() - start_time)
+        output_to_s3_key(query_identifier, dates, sentiment, phrases, links, dm_map, keywords, expansions, query_text, time.time() - start_time)
 
         yield QueryMessage("Query completed!")
 
 if __name__ == "__main__":
 
-    core.configure_logging('info')
-    engine = core.get_database_engine_string()
+    configure_logging('info')
+    engine = get_database_engine_string()
     logging.info("Using connection string '%s'" % (engine,))
     engine = create_engine(engine, encoding='utf-8', isolation_level = 'READ UNCOMMITTED', poolclass=SingletonThreadPool, echo = False)
 
@@ -431,9 +439,9 @@ if __name__ == "__main__":
             logging.critical(traceback.extract_tb(tb))
             logging.critical(except_type)
             logging.critical(except_class)
-            if query_email is not None:
+            if query.email is not None:
                 pm.send_failure(query.email, "Unexpected query engine error.")
-            uq.email = None
+            query.email = None
             session.commit() 
         qq.set_completed(uq_id)
         break
