@@ -142,6 +142,15 @@ class AndQuery(Query):
     def aggregate(self):
         ret = None
         for i in self:
+            require, exclude = set([]), set([]) 
+            if isinstance(i, QueryKeywordLiteralModifier):
+                for thing in i.item:
+                    require.add(thing)
+                continue 
+            if isinstance(i, QueryKeywordExclusionModifier):
+                for thing in i.item:
+                    exclude.add(thing)
+                continue 
             if isinstance(i, Query):
                 i = i.aggregate()
             if ret is None:
@@ -154,6 +163,10 @@ class AndQuery(Query):
                 ret = ret.intersection(i)
             except TypeError:
                 ret = ret.intersection([i])
+        if len(require) > 0:
+            ret = ret.intersection(require)
+        if len(exclude) > 0:
+            ret = ret - exclude 
         return list(ret)
 
 class NotQuery(Query):

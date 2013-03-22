@@ -198,20 +198,8 @@ def combine_retrieved_documents(iterable):
     prompt = False
     # If this is iterable, apply combine_retrieve_documents to all sublevels
     if hasattr(iterable, '__iter__'):
-        # Need to check for literals
-        print iterable
-        prompt = True
-        iterable = list(itertools.chain.from_iterable([combine_retrieved_documents(i) for i in iterable]))
-        require  = [i for i in iterable if isinstance(i, QueryKeywordLiteralModifier)]
-        exclude  = [i for i in iterable if isinstance(i, QueryKeywordExclusionModifier)]
-
-        require = list(itertools.chain.from_iterable([i.item for i in require]))
-        exclude = list(itertools.chain.from_iterable([i.item for i in exclude]))
-
-        if len(require) > 0:
-            iterable = [i for i in iterable if i in require]
-        if len(exclude) > 0:
-            iterable = [i for i in iterable if i not in exclude]
+        prompt = True 
+        iterable = [combine_retrieve_documents(i) for i in iterable]
     else:
         prompt = False
         iterable = [iterable]
