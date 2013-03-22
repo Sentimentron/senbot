@@ -130,7 +130,6 @@ def resolve_document_dates(result):
     ret = {}
     for _id, method, date in (r.get() for r in result):
         ret[_id] = (method, date)
-        print _id, method, date
     return ret 
 
 def perform_site_docs_resolution(item):
@@ -203,14 +202,10 @@ def combine_retrieved_documents(iterable):
         require = list(itertools.chain.from_iterable([i.item for i in require]))
         exclude = list(itertools.chain.from_iterable([i.item for i in exclude]))
 
-        print len(require), len(exclude), len(iterable),
-
         if len(require) > 0:
             iterable = [i for i in iterable if i in require]
-        print len(iterable),
         if len(exclude) > 0:
           iterable = [i for i in iterable if i not in exclude]
-        print len(iterable)
     else:
         iterable = [iterable]
 
