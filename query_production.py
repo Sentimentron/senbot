@@ -408,21 +408,21 @@ if __name__ == "__main__":
     qq = QueryQueue(engine)
     om = EmailProcessor()
     for uq_id in qq:
-        query = session.query(UserQuery).get(uq_id)
-        if query is None:
+        user_query = session.user_query(UserQuery).get(uq_id)
+        if user_query is None:
             logging.error("Query with id '%d' not found!" % (uq_id,))
             sys.exit(1)
         try:    
-            for msg in process_query(uq_id, query.text):
-                query.message = msg.message 
+            for msg in process_user_query(uq_id, user_query.text):
+                user_query.message = msg.message 
                 logging.info(msg.message)
                 session.commit()
 
-            query.fulfilled = now()
+            user_query.fulfilled = now()
             session.commit()
-            if query.email is not None:
-                pm.send_success(query.email, query.id)
-            query.email = None 
+            if user_query.email is not None:
+                pm.send_success(user_query.email, user_query.id)
+            user_query.email = None 
             session.commit()
         except QueryException as ex:
             except_type, except_class, tb = sys.exc_info()
@@ -430,18 +430,18 @@ if __name__ == "__main__":
             logging.critical(except_type)
             logging.critical(except_class)
             logging.critical(ex)
-            if query.email is not None:
-                pm.send_failure(query.email, ex.message)
-            query.email = None
+            if user_query.email is not None:
+                pm.send_failure(user_query.email, ex.message)
+            user_query.email = None
             session.commit() 
         except Exception as ex:
             except_type, except_class, tb = sys.exc_info()
             logging.critical(traceback.extract_tb(tb))
             logging.critical(except_type)
             logging.critical(except_class)
-            if query.email is not None:
-                pm.send_failure(query.email, "Unexpected query engine error.")
-            query.email = None
+            if user_query.email is not None:
+                pm.send_failure(user_query.email, "General query engine error.")
+            user_query.email = None
             session.commit() 
         qq.set_completed(uq_id)
         break
