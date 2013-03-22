@@ -1,31 +1,32 @@
 #!/usr/bin/env python
 
+import boto.s3
+import datetime
+import itertools 
+import json
+import time 
+import types
+
+from boto.s3.connection import S3Connection
+from boto.s3.key import Key
+from celery import chain, group
+from celery.exceptions import TimeoutError
+from celery.result import AsyncResult
+from core import recursive_map, get_celery
+from collections import Counter, defaultdict
 from parsing.models import *
 from parsing.parser import *
-from core import recursive_map, get_celery
-from celery import chain, group
-from celery.result import AsyncResult
-from celery.exceptions import TimeoutError
-import types
+
+from jobs.queue import QueryQueue
+from jobs.messages import QueryException, QueryMessage
+from jobs.mail import EmailProcessor
+
 from tasks import get_site_id, get_site_docs, \
     get_keyword_id, get_keyword_docs, get_document_date, \
     get_document_links, get_phrase_relevance, \
     get_document_sentiment, get_document_terms
-import itertools 
-from collections import Counter, defaultdict
-import time 
-import datetime
-from boto.s3.connection import S3Connection
-from boto.s3.key import Key
-import boto.s3
-import json
-celery = get_celery()
 
-queries = ["Barack", "McCain",
-    "Barack AND foxnews.com",
-    "+Barack AND McCain foxnews.com",
-    "+Barack AND -\"McCain Oven Chips\" foxnews.com"
-]
+celery = get_celery()
 
 class ResultPlaceholder(object):
 
@@ -318,54 +319,56 @@ def output_to_s3_key(keyname, dates, sentiment, phrases,
     key.set_contents_from_string(out)
 
 
-for c, q in enumerate(queries):
+if __name__ == "__main__":
 
-    if c != 2:
-        continue
-    
-    start_time = time.time()
+    for c, q in enumerate(queries):
 
-    # Parse query 
-    parsed = query.parseString(q).asList()
-    print c
-    print "PARSED", parsed
-    doc_keywords_dict = {}
-    expansions = set([])
+        if c != 2:
+            continue
+        
+        start_time = time.time()
 
-    # 
-    # Document set resolution 
-    # 
-    inter = parsed
-    inter = recursive_map(inter, perform_site_docs_resolution)
-    inter = recursive_map(inter, perform_keyword_expansions)
-    inter = recursive_map(inter, resolve_keyword_expansions)
-    inter = recursive_map(inter, lambda x: extract_keywords(x, expansions))
-    inter = recursive_map(inter, perform_keyword_docs_resolution)
-    inter = recursive_map(inter, perform_keywordlt_docs_resolution)
-    inter = recursive_map(inter, lambda x: resolve_all_documents(x, doc_keywords_dict))
-    inter = recursive_map(inter, lambda x: resolve_literal_documents(x, doc_keywords_dict))
-    #print inter
-    inter = [i for i in itertools.chain.from_iterable(combine_retrieved_documents(inter))]
-    #inter = [i for i in [j for j in combine_retrieved_documents(inter)]]
-    print inter
+        # Parse query 
+        parsed = query.parseString(q).asList()
+        print c
+        print "PARSED", parsed
+        doc_keywords_dict = {}
+        expansions = set([])
 
-    # 
-    # Build the document properties dict
-    #
-    # Perform RPC calls
-    date_results = perform_document_date_resolution(inter)
-    sen_results  = perform_document_sentiment_resolution(inter)
-    link_results = perform_document_link_resolution(inter)
-    phrase_results = perform_phrase_relevance_resolution(inter, doc_keywords_dict)
-    doc_terms    = perform_document_keyterm_extraction(inter)
+        # 
+        # Document set resolution 
+        # 
+        inter = parsed
+        inter = recursive_map(inter, perform_site_docs_resolution)
+        inter = recursive_map(inter, perform_keyword_expansions)
+        inter = recursive_map(inter, resolve_keyword_expansions)
+        inter = recursive_map(inter, lambda x: extract_keywords(x, expansions))
+        inter = recursive_map(inter, perform_keyword_docs_resolution)
+        inter = recursive_map(inter, perform_keywordlt_docs_resolution)
+        inter = recursive_map(inter, lambda x: resolve_all_documents(x, doc_keywords_dict))
+        inter = recursive_map(inter, lambda x: resolve_literal_documents(x, doc_keywords_dict))
+        #print inter
+        inter = [i for i in itertools.chain.from_iterable(combine_retrieved_documents(inter))]
+        #inter = [i for i in [j for j in combine_retrieved_documents(inter)]]
+        print inter
 
-    # Assemble output 
-    dates     = resolve_document_dates(date_results)
-    sentiment = resolve_document_property(sen_results)
-    phrases   = resolve_phrase_relevance(phrase_results)
-    links, dm_map     = resolve_document_links(link_results)
-    keywords  = resolve_document_property(doc_terms)
+        # 
+        # Build the document properties dict
+        #
+        # Perform RPC calls
+        date_results = perform_document_date_resolution(inter)
+        sen_results  = perform_document_sentiment_resolution(inter)
+        link_results = perform_document_link_resolution(inter)
+        phrase_results = perform_phrase_relevance_resolution(inter, doc_keywords_dict)
+        doc_terms    = perform_document_keyterm_extraction(inter)
 
-    output_to_s3_key("test", dates, sentiment, phrases, links, dm_map, keywords, expansions, q, time.time() - start_time)
+        # Assemble output 
+        dates     = resolve_document_dates(date_results)
+        sentiment = resolve_document_property(sen_results)
+        phrases   = resolve_phrase_relevance(phrase_results)
+        links, dm_map     = resolve_document_links(link_results)
+        keywords  = resolve_document_property(doc_terms)
 
-    print dm_map 
+        output_to_s3_key("test", dates, sentiment, phrases, links, dm_map, keywords, expansions, q, time.time() - start_time)
+
+        print dm_map 
