@@ -13,6 +13,7 @@ from tasks import get_site_id, get_site_docs, \
     get_document_sentiment, get_document_terms
 import itertools 
 from collections import Counter, defaultdict
+import time 
 celery = get_celery()
 
 queries = ["Barack", "McCain",
@@ -208,20 +209,106 @@ def _combine_retrieved_documents(iterable):
     return iterable 
 
 def combine_retrieved_documents(iterable):
-    
     return itertools.chain.from_iterable(_combine_retrieved_documents(iterable))
+
+def extract_keywords(iterable, output_list):
+    if type(iterable) is QueryKeyword:
+        output_list.append(iterable.item)
+    return iterable 
+
+def output_to_s3_key(keyname, dates, sentiment, phrases, 
+    links, dm_map, keywords, expansions, input_text,
+    time):
+
+    # Collect the ids of documents within all returned domains
+    ids = {}
+    for _id in dm_map:
+        d = dm_map[_id]
+        if d not in ids:
+            ids[d] = set([])
+        ids[d].add(_id)
+
+    # Build the auxillary section
+    aux = {d : {} for d in ids}
+    for key in aux:
+        item = aux[key]
+        item["coverage"]   = 0 # Backwards compatability
+        item["links"]      = Counter()
+        item["keywords"]   = set([])
+
+        doc_keywords = Counter()
+
+        for _id in ids[key]:
+            if _id in links:
+                doc_links      = links[_id]
+                item["links"] += doc_links 
+            if _id in keywords:
+                doc_keywords  += keywords[_id]
+
+        item["keywords"].update([i for i, c in doc_keywords.most_common(5)])
+
+    # Build the information section
+    info = {
+        'documents_returned' : len(dm_map),
+        'keywords_returned'  : len(expansions),
+        'keywords_set' : expansions,
+        'phrases_returned' : 0,
+        'query_text': input_text, 
+        'query_time': time,
+        'result_version': 2,
+        'sentences_returned': 0,
+        'using_keywords': int(len(keywords) > 0)
+    }
+
+    for _id in sentiment:
+        pos_phrases, neg_phrases, pos_sentences, neg_sentences = sentiment[_id]
+        info['phrases_returned'] += pos_phrases + neg_phrases
+        info['sentences_returned'] += pos_sentences + neg_sentences
+
+    sites = {d: {'details': {}, 'docs':[]} for d in ids}
+
+    for domain in ids:
+        for _id = ids[domain]:
+            method, date = dates[_id]
+            method = convert_date_method(method)
+            date   = convert_date(date)
+            pos_phrases, neg_phrases, pos_sentences, neg_sentences, label = sentiment[_id]
+            rel_pos, rel_neg = phrases[_id]
+            label = 
+            entry = [
+                method, 
+                date,
+                pos_phrases,
+                neg_phrases,
+                pos_sentences,
+                neg_sentences,
+                rel_pos,
+                rel_neg,
+                label,
+                0, # Probability measure: backwards compatible
+                _id 
+            ]
+            sites[domain]['docs'].append(entry)
+
+    out = {'aux': aux, 'info': info, 'siteData': sites}
+
+    import pprint 
+    pprint.pprint(out)
+
 
 for c, q in enumerate(queries):
 
     if c != 2:
         continue
     
+    start_time = time.time()
+
     # Parse query 
     parsed = query.parseString(q).asList()
     print c
     print "PARSED", parsed
-    
     doc_keywords_dict = {}
+    expansions = []
 
     # 
     # Document set resolution 
@@ -230,6 +317,7 @@ for c, q in enumerate(queries):
     inter = recursive_map(inter, perform_site_docs_resolution)
     inter = recursive_map(inter, perform_keyword_expansions)
     inter = recursive_map(inter, resolve_keyword_expansions)
+    inter = recursive_map(inter, lambda x: extract_keywords(x, expansions))
     inter = recursive_map(inter, perform_keyword_docs_resolution)
     inter = recursive_map(inter, perform_keywordlt_docs_resolution)
     inter = recursive_map(inter, lambda x: resolve_all_documents(x, doc_keywords_dict))
@@ -256,5 +344,6 @@ for c, q in enumerate(queries):
     links, dm_map     = resolve_document_links(link_results)
     keywords  = resolve_document_property(doc_terms)
 
+    output_to_s3_key("test", dates, sentiment, phrases, links, dm_map, keywords, q, time.time() - start_time)
 
     print dm_map 

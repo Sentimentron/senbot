@@ -214,12 +214,12 @@ class DocumentSentimentFromId(DatabaseTask):
         con = self.engine.connect()
         ret = None 
 
-        sql = """SELECT pos_phrases, neg_phrases, pos_sentences, neg_sentences
+        sql = """SELECT pos_phrases, neg_phrases, pos_sentences, neg_sentences, label
             FROM documents 
             WHERE documents.id = %d""" % (doc_id, )
 
-        for pos_phrases, neg_phrases, pos_sentences, neg_sentences in con.execute(sql):
-            ret = (pos_phrases, neg_phrases, pos_sentences, neg_sentences)
+        for pos_phrases, neg_phrases, pos_sentences, neg_sentences, label in con.execute(sql):
+            ret = (pos_phrases, neg_phrases, pos_sentences, neg_sentences, label)
 
         return doc_id, ret 
 
