@@ -15,6 +15,10 @@ import itertools
 from collections import Counter, defaultdict
 import time 
 import datetime
+from boto.s3.connection import S3Connection
+from boto.s3.key import Key
+import boto.s3
+import json
 celery = get_celery()
 
 queries = ["Barack", "McCain",
@@ -246,13 +250,13 @@ def output_to_s3_key(keyname, dates, sentiment, phrases,
             if _id in keywords:
                 doc_keywords.update(keywords[_id])
 
-        item["keywords"].update([i for i, c in doc_keywords.most_common(5)])
+        item["keywords"] = [i for i, c in doc_keywords.most_common(5)]
 
     # Build the information section
     info = {
         'documents_returned' : len(dm_map),
         'keywords_returned'  : len(expansions),
-        'keywords_set' : expansions,
+        'keywords_set' : [word for word in expansions],
         'phrases_returned' : 0,
         'query_text': input_text, 
         'query_time': time,
@@ -306,9 +310,12 @@ def output_to_s3_key(keyname, dates, sentiment, phrases,
             sites[domain]['docs'].append(entry)
 
     out = {'aux': aux, 'info': info, 'siteData': sites}
-
-    import pprint 
-    pprint.pprint(out)
+    out = json.dumps(out)
+    con = S3Connection()
+    bucket = con.get_bucket('results.sentimentron.co.uk')
+    key = Key(bucket)
+    key.key = 'results/%s' % (keyname)
+    key.set_contents_from_string(out)
 
 
 for c, q in enumerate(queries):
