@@ -156,7 +156,7 @@ def resolve_all_documents(item, doc_keywords_dict):
             doc_keywords_dict[d].add(keyword_id)
         return docs 
 
-    return result
+    return docs
 
 def _combine_retrieved_documents(item):
     if not isinstance(item, Query):
