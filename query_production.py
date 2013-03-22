@@ -16,7 +16,9 @@ from core import recursive_map, get_celery
 from collections import Counter, defaultdict
 from parsing.models import *
 from parsing.parser import *
+from pyparsing import ParseException
 
+from models import UserQuery
 from jobs.queue import QueryQueue
 from jobs.messages import QueryException, QueryMessage
 from jobs.mail import EmailProcessor
@@ -319,35 +321,36 @@ def output_to_s3_key(keyname, dates, sentiment, phrases,
     key.set_contents_from_string(out)
 
 
-if __name__ == "__main__":
+def process_query(query_text, query_identifier):
 
-    for c, q in enumerate(queries):
-
-        if c != 2:
-            continue
-        
         start_time = time.time()
+        expansions = set([])
+        doc_keywords_dict = {}
 
         # Parse query 
-        parsed = query.parseString(q).asList()
-        print c
-        print "PARSED", parsed
-        doc_keywords_dict = {}
-        expansions = set([])
+        parsed = None 
+        try:
+            parsed = query.parseString(query_text).asList()
+        except ParseException as ex:
+            raise QueryException("Parsing error: '%s'", ex)
 
         # 
         # Document set resolution 
         # 
         inter = parsed
+        yield QueryMessage("Sending domain resolution request...")
         inter = recursive_map(inter, perform_site_docs_resolution)
+        yield QueryMessage("Running keyword expansions...")
         inter = recursive_map(inter, perform_keyword_expansions)
         inter = recursive_map(inter, resolve_keyword_expansions)
+        yield QueryMessage("Running document matching....")
         inter = recursive_map(inter, lambda x: extract_keywords(x, expansions))
         inter = recursive_map(inter, perform_keyword_docs_resolution)
         inter = recursive_map(inter, perform_keywordlt_docs_resolution)
         inter = recursive_map(inter, lambda x: resolve_all_documents(x, doc_keywords_dict))
         inter = recursive_map(inter, lambda x: resolve_literal_documents(x, doc_keywords_dict))
         #print inter
+        yield QueryMessage("Combining retrieved documents...")
         inter = [i for i in itertools.chain.from_iterable(combine_retrieved_documents(inter))]
         #inter = [i for i in [j for j in combine_retrieved_documents(inter)]]
         print inter
@@ -356,19 +359,81 @@ if __name__ == "__main__":
         # Build the document properties dict
         #
         # Perform RPC calls
+        yield QueryMessage("Requesting dates...")
         date_results = perform_document_date_resolution(inter)
+        yield QueryMessage("Requesting sentiment...")
         sen_results  = perform_document_sentiment_resolution(inter)
+        yield QueryMessage("Generating link summary")
         link_results = perform_document_link_resolution(inter)
-        phrase_results = perform_phrase_relevance_resolution(inter, doc_keywords_dict)
+        if len(doc_keywords_dict) > 0:
+            yield QueryMessage("Requesting relevant phrases...")
+            phrase_results = perform_phrase_relevance_resolution(inter, doc_keywords_dict)
+        yield QueryMessage("Generating document summaries...")
         doc_terms    = perform_document_keyterm_extraction(inter)
 
         # Assemble output 
+        yield QueryMessage("Assembling date information...")
         dates     = resolve_document_dates(date_results)
+        yield QueryMessage("Assembling sentiment information...")
         sentiment = resolve_document_property(sen_results)
+        yield QueryMessage("Assembling relevant phrase information...")
         phrases   = resolve_phrase_relevance(phrase_results)
+        yield QueryMessage("Assembling link information...")
         links, dm_map     = resolve_document_links(link_results)
+        yield QueryMessage("Assembling document keywords...")
         keywords  = resolve_document_property(doc_terms)
 
-        output_to_s3_key("test", dates, sentiment, phrases, links, dm_map, keywords, expansions, q, time.time() - start_time)
+        yield QueryMessage("Writing results...")
+        output_to_s3_key(, dates, sentiment, phrases, links, dm_map, keywords, expansions, query_text, time.time() - start_time)
 
-        print dm_map 
+        yield QueryMessage("Query completed!")
+
+if __name__ == "__main__":
+
+    core.configure_logging('info')
+    engine = core.get_database_engine_string()
+    logging.info("Using connection string '%s'" % (engine,))
+    engine = create_engine(engine, encoding='utf-8', isolation_level = 'READ UNCOMMITTED', poolclass=SingletonThreadPool, echo = False)
+
+    session = Session(bind = engine)
+
+    qq = QueryQueue(engine)
+    om = EmailProcessor()
+    for uq_id in qq:
+        query = session.query(UserQuery).get(uq_id)
+        if query is None:
+            logging.error("Query with id '%d' not found!" % (uq_id,))
+            sys.exit(1)
+        try:    
+            for msg in process_query(uq_id, query.text):
+                query.message = msg.message 
+                logging.info(msg.message)
+                session.commit()
+
+            query.fulfilled = now()
+            session.commit()
+            if query.email is not None:
+                pm.send_success(query.email, query.id)
+            query.email = None 
+            session.commit()
+        except QueryException as ex:
+            except_type, except_class, tb = sys.exc_info()
+            logging.critical(traceback.extract_tb(tb))
+            logging.critical(except_type)
+            logging.critical(except_class)
+            logging.critical(ex)
+            if query.email is not None:
+                pm.send_failure(query.email, ex.message)
+            query.email = None
+            session.commit() 
+        except Exception as ex:
+            except_type, except_class, tb = sys.exc_info()
+            logging.critical(traceback.extract_tb(tb))
+            logging.critical(except_type)
+            logging.critical(except_class)
+            if query_email is not None:
+                pm.send_failure(query.email, "Unexpected query engine error.")
+            uq.email = None
+            session.commit() 
+        qq.set_completed(uq_id)
+        break
