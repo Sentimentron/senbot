@@ -16,6 +16,7 @@ from collections import Counter
 celery = get_celery()
 
 queries = ["Barack", "McCain",
+    "Barack AND foxnews.com",
     "+Barack AND McCain foxnews.com",
     "+Barack AND -\"McCain Oven Chips\" foxnews.com"
 ]
@@ -107,9 +108,10 @@ def perform_phrase_relevance_resolution(documents, keywords_dict):
     return group(get_phrase_relevance.subtask((d, keywords_dict[d])) for d in documents).apply_async()
 
 def resolve_document_links(results):
-    ret = {}
+    ret = {}; dm_map = {}
     for item in results.iterate():
         _id, links, domain = item 
+        dm_map[_id] = domain
         if domain not in ret:
             ret[domain] = {}
         cur = ret[domain]
@@ -117,7 +119,7 @@ def resolve_document_links(results):
             if key not in cur:
                 cur[key] = 0
             cur[key] += links[key] 
-    return ret 
+    return ret, dm_map 
 
 def resolve_phrase_relevance(results):
     ret = {}
@@ -259,8 +261,8 @@ for c, q in enumerate(queries):
     dates     = resolve_document_dates(date_results)
     sentiment = resolve_document_property(sen_results)
     phrases   = resolve_phrase_relevance(phrase_results)
-    links     = resolve_document_links(link_results)
+    links, dm_map     = resolve_document_links(link_results)
     keywords  = resolve_document_property(doc_terms)
 
 
-    print dates 
+    print dm_map 
