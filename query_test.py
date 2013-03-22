@@ -14,6 +14,7 @@ from tasks import get_site_id, get_site_docs, \
 import itertools 
 from collections import Counter, defaultdict
 import time 
+import datetime
 celery = get_celery()
 
 queries = ["Barack", "McCain",
@@ -125,8 +126,8 @@ def resolve_document_links(results):
 def resolve_phrase_relevance(results):
     ret = {}
     for item in results.iterate():
-        doc_id, count = item 
-        ret[doc_id] = int(count)
+        doc_id, (pos, neg) = item 
+        ret[doc_id] = (int(pos), int(neg))
     return ret 
 
 def resolve_document_dates(result):
@@ -211,9 +212,9 @@ def _combine_retrieved_documents(iterable):
 def combine_retrieved_documents(iterable):
     return itertools.chain.from_iterable(_combine_retrieved_documents(iterable))
 
-def extract_keywords(iterable, output_list):
+def extract_keywords(iterable, output):
     if type(iterable) is QueryKeyword:
-        output_list.append(iterable.item)
+        output.add(iterable.keyword)
     return iterable 
 
 def output_to_s3_key(keyname, dates, sentiment, phrases, 
@@ -243,7 +244,7 @@ def output_to_s3_key(keyname, dates, sentiment, phrases,
                 doc_links      = links[_id]
                 item["links"] += doc_links 
             if _id in keywords:
-                doc_keywords  += keywords[_id]
+                doc_keywords.update(keywords[_id])
 
         item["keywords"].update([i for i, c in doc_keywords.most_common(5)])
 
@@ -261,20 +262,34 @@ def output_to_s3_key(keyname, dates, sentiment, phrases,
     }
 
     for _id in sentiment:
-        pos_phrases, neg_phrases, pos_sentences, neg_sentences = sentiment[_id]
+        pos_phrases, neg_phrases, pos_sentences, neg_sentences, label = sentiment[_id]
         info['phrases_returned'] += pos_phrases + neg_phrases
         info['sentences_returned'] += pos_sentences + neg_sentences
 
     sites = {d: {'details': {}, 'docs':[]} for d in ids}
 
+    def convert_date_method(method):
+        if method == "Certain":
+            return 0
+        elif method == "Uncertain":
+            return 1
+        elif method == "Crawled":
+            return 2
+        return -1
+
+    def convert_date(input_date):
+        start = datetime.datetime(year=1970,month=1,day=1)
+        diff = input_date - start
+        return int(diff.total_seconds()*1000)
+
     for domain in ids:
-        for _id = ids[domain]:
+        for _id in ids[domain]:
             method, date = dates[_id]
             method = convert_date_method(method)
             date   = convert_date(date)
             pos_phrases, neg_phrases, pos_sentences, neg_sentences, label = sentiment[_id]
+            print phrases
             rel_pos, rel_neg = phrases[_id]
-            label = 
             entry = [
                 method, 
                 date,
@@ -308,7 +323,7 @@ for c, q in enumerate(queries):
     print c
     print "PARSED", parsed
     doc_keywords_dict = {}
-    expansions = []
+    expansions = set([])
 
     # 
     # Document set resolution 
@@ -344,6 +359,6 @@ for c, q in enumerate(queries):
     links, dm_map     = resolve_document_links(link_results)
     keywords  = resolve_document_property(doc_terms)
 
-    output_to_s3_key("test", dates, sentiment, phrases, links, dm_map, keywords, q, time.time() - start_time)
+    output_to_s3_key("test", dates, sentiment, phrases, links, dm_map, keywords, expansions, q, time.time() - start_time)
 
     print dm_map 

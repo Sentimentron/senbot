@@ -188,22 +188,24 @@ get_document_date = registry.tasks[ProdDocPublished.name]
 class PhraseRelevanceFromKeywordDocId(DatabaseTask):
 
     def run(self, doc_id, keyword_identifiers):
-        ret = None 
-
-        sql = """SELECT COUNT(*) FROM documents 
+        sql = """SELECT COUNT(*), phrases.label FROM documents 
             JOIN sentences ON sentences.document = documents.id 
             JOIN phrases ON phrases.sentence = sentences.id 
             JOIN keyword_incidences ON keyword_incidences.phrase_id = phrases.id 
             WHERE keyword_incidences.keyword_id IN (%s)
-            AND documents.id = %d""" % (','.join([str(i) for i in keyword_identifiers]), doc_id)
+            AND documents.id = %d
+            GROUP BY phrases.id, documents.id
+            """ % (','.join([str(i) for i in keyword_identifiers]), doc_id)
 
         con = self.engine.connect()
-
-        for count, in con.execute(sql):
-            ret = int(count)
-
+        pos, neg = 0, 0
+        for count, label in con.execute(sql):
+            if label == "Positive":
+                pos += count 
+            if label == "Negative":
+                neg += count
         con.close()
-        return (doc_id, ret)
+        return (doc_id, (pos, neg))
 
 get_phrase_relevance = registry.tasks[PhraseRelevanceFromKeywordDocId.name]
 
@@ -219,6 +221,10 @@ class DocumentSentimentFromId(DatabaseTask):
             WHERE documents.id = %d""" % (doc_id, )
 
         for pos_phrases, neg_phrases, pos_sentences, neg_sentences, label in con.execute(sql):
+            if label == "Positive":
+                label = 1
+            else:
+                label = -1
             ret = (pos_phrases, neg_phrases, pos_sentences, neg_sentences, label)
 
         return doc_id, ret 
