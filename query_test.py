@@ -231,7 +231,10 @@ for c, q in enumerate(queries):
     print "PARSED", parsed
     
     doc_keywords_dict = {}
-    # Got a problem: ignores literal keyword modifiers
+
+    # 
+    # Document set resolution 
+    # 
     inter = parsed
     inter = recursive_map(inter, perform_site_docs_resolution)
     inter = recursive_map(inter, perform_keyword_expansions)
@@ -242,14 +245,22 @@ for c, q in enumerate(queries):
     inter = recursive_map(inter, lambda x: resolve_literal_documents(x, doc_keywords_dict))
     inter = combine_retrieved_documents(inter)
 
+    # 
     # Build the document properties dict
+    #
+    # Perform RPC calls
     date_results = perform_document_date_resolution(inter)
     sen_results  = perform_document_sentiment_resolution(inter)
     link_results = perform_document_link_resolution(inter)
     phrase_results = perform_phrase_relevance_resolution(inter, doc_keywords_dict)
     doc_terms    = perform_document_keyterm_extraction(inter)
-    print resolve_document_dates(date_results)
-    print resolve_document_property(sen_results)
-    print resolve_phrase_relevance(phrase_results)
-    print resolve_document_links(link_results)
-    print resolve_document_property(doc_terms)
+
+    # Assemble output 
+    dates     = resolve_document_dates(date_results)
+    sentiment = resolve_document_property(sen_results)
+    phrases   = resolve_phrase_relevance(phrase_results)
+    links     = resolve_document_links(link_results)
+    keywords  = resolve_document_property(doc_terms)
+
+
+    print dates 
