@@ -16,7 +16,6 @@ from collections import Counter, defaultdict
 celery = get_celery()
 
 queries = ["Barack", "McCain",
-    "+\"Bill Gates\" AND arstechnica.com",
     "Barack AND foxnews.com",
     "+Barack AND McCain foxnews.com",
     "+Barack AND -\"McCain Oven Chips\" foxnews.com"
@@ -194,26 +193,24 @@ def resolve_literal_documents(iterable, doc_keywords_dict):
     
     return iterable 
 
-def combine_retrieved_documents(iterable):
+def _combine_retrieved_documents(iterable):
     prompt = False
     # If this is iterable, apply combine_retrieve_documents to all sublevels
-    if hasattr(iterable, '__iter__'):
-        prompt = True 
-        iterable = [combine_retrieve_documents(i) for i in iterable]
-    else:
-        prompt = False
-        iterable = [iterable]
-
-    # Pull together document identifiers if possible
     if isinstance(iterable, Query):
         iterable = iterable.aggregate()
+    
+    if hasattr(iterable, '__iter__'):
+        prompt = True 
+        iterable = [_combine_retrieved_documents(i) for i in iterable]
+    else:
+        prompt = False
 
-    if prompt:
-        raw_input(iterable)
     return iterable 
 
-print AndQuery([AndQuery([12,11]), [14, 11]]).aggregate()
-sys.exit(0)
+def combine_retrieved_documents(iterable):
+    
+    return itertools.chain.from_iterable(_combine_retrieved_documents(iterable))
+
 for c, q in enumerate(queries):
 
     if c != 2:
@@ -237,9 +234,10 @@ for c, q in enumerate(queries):
     inter = recursive_map(inter, perform_keywordlt_docs_resolution)
     inter = recursive_map(inter, lambda x: resolve_all_documents(x, doc_keywords_dict))
     inter = recursive_map(inter, lambda x: resolve_literal_documents(x, doc_keywords_dict))
-    inter = combine_retrieved_documents(inter)
+    #print inter
+    inter = [i for i in itertools.chain.from_iterable(combine_retrieved_documents(inter))]
+    #inter = [i for i in [j for j in combine_retrieved_documents(inter)]]
     print inter
-    sys.exit(0)
 
     # 
     # Build the document properties dict
