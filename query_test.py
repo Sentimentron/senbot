@@ -224,8 +224,8 @@ def combine_retrieved_documents(iterable):
         raw_input(iterable)
     return iterable 
 
-combine_retrieved_documents(AndQuery([AndQuery([12,11]), [14, 11]]))
-
+print AndQuery([AndQuery([12,11]), [14, 11]]).aggregate()
+sys.exit(0)
 for c, q in enumerate(queries):
 
     if c != 2:

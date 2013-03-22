@@ -124,7 +124,6 @@ class Query(QueryContainer):
         pass 
 
 class OrQuery(Query):
-
     def aggregate(self):
         ret = None 
         for i in self:
@@ -140,12 +139,20 @@ class AndQuery(Query):
     def aggregate(self):
         ret = None
         for i in self:
+            print self, i
             if isinstance(i, Query):
                 i = i.aggregate()
+                print "AGGREGATE", i
             if ret is None:
-                ret = set(i)
+                try:
+                    ret = set(i)
+                except TypeError:
+                    ret = set([i])
                 continue 
-            ret = ret.intersection(i)
+            try:
+                ret = ret.intersection(i)
+            except TypeError:
+                ret = ret.intersection([i])
         return list(ret)
 
 class NotQuery(Query):
