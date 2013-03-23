@@ -26,6 +26,7 @@ from sqlalchemy.orm import *
 from sqlalchemy.orm.exc import *
 from sqlalchemy.orm.session import Session 
 from sqlalchemy.pool import SingletonThreadPool
+from sqlalchemy.sql.functions import now
 
 from models import UserQuery
 from jobs.queue import QueryQueue
@@ -167,7 +168,6 @@ def resolve_all_documents(item, doc_keywords_dict):
         return item 
 
     result = item.resolve()
-    print type(item)
     if isinstance(item, KeywordDocResolutionPlaceholder):
         keyword_id, docs = result 
         for d in docs:
@@ -177,13 +177,6 @@ def resolve_all_documents(item, doc_keywords_dict):
         return docs
 
     return result
-
-def _combine_retrieved_documents(item):
-    if not isinstance(item, Query):
-        return item 
-
-    return item.aggregate()
-
 
 def perform_keywordlt_docs_resolution(iterable):
     # If this is iterable, apply to all sublevels
@@ -210,22 +203,31 @@ def resolve_literal_documents(iterable, doc_keywords_dict):
     
     return iterable 
 
-def _combine_retrieved_documents(iterable):
+def _combine_retrieved_documents(inter):
     prompt = False
     # If this is iterable, apply combine_retrieve_documents to all sublevels
-    if isinstance(iterable, Query):
-        iterable = iterable.aggregate()
+    if isinstance(inter, Query):
+        inter = iterable.aggregate()
     
-    if hasattr(iterable, '__iter__'):
+    if hasattr(inter, '__iter__'):
         prompt = True 
-        iterable = [_combine_retrieved_documents(i) for i in iterable]
+        inter = [_combine_retrieved_documents(i) for i in inter]
     else:
         prompt = False
 
-    return iterable 
+    return inter
 
-def combine_retrieved_documents(iterable):
-    return itertools.chain.from_iterable(_combine_retrieved_documents(iterable))
+def flatten(x):
+    try:
+        it = iter(x)
+        for i in it:
+            for j in flatten(i):
+                yield j
+    except TypeError:
+        yield x
+
+def combine_retrieved_documents(resolved_query):
+    return flatten(_combine_retrieved_documents(resolved_query))
 
 def extract_keywords(iterable, output):
     if type(iterable) is QueryKeyword:
@@ -304,7 +306,10 @@ def output_to_s3_key(keyname, dates, sentiment, phrases,
             date   = convert_date(date)
             pos_phrases, neg_phrases, pos_sentences, neg_sentences, label = sentiment[_id]
             print phrases
-            rel_pos, rel_neg = phrases[_id]
+            if _id in phrases:
+                rel_pos, rel_neg = phrases[_id]
+            else:
+                rel_pos, rel_neg = 0, 0
             entry = [
                 method, 
                 date,
@@ -357,27 +362,25 @@ def process_query(query_text, query_identifier):
         inter = recursive_map(inter, perform_keywordlt_docs_resolution)
         inter = recursive_map(inter, lambda x: resolve_all_documents(x, doc_keywords_dict))
         inter = recursive_map(inter, lambda x: resolve_literal_documents(x, doc_keywords_dict))
-        #print inter
         yield QueryMessage("Combining retrieved documents...")
-        inter = [i for i in itertools.chain.from_iterable(combine_retrieved_documents(inter))]
-        #inter = [i for i in [j for j in combine_retrieved_documents(inter)]]
-        print inter
+        docs = set([i for i in combine_retrieved_documents(inter)])
+        print docs
 
         # 
         # Build the document properties dict
         #
         # Perform RPC calls
         yield QueryMessage("Requesting dates...")
-        date_results = perform_document_date_resolution(inter)
+        date_results = perform_document_date_resolution(docs)
         yield QueryMessage("Requesting sentiment...")
-        sen_results  = perform_document_sentiment_resolution(inter)
-        yield QueryMessage("Generating link summary")
-        link_results = perform_document_link_resolution(inter)
+        sen_results  = perform_document_sentiment_resolution(docs)
+        yield QueryMessage("Generating link summary...")
+        link_results = perform_document_link_resolution(docs)
         if len(doc_keywords_dict) > 0:
             yield QueryMessage("Requesting relevant phrases...")
-            phrase_results = perform_phrase_relevance_resolution(inter, doc_keywords_dict)
+            phrase_results = perform_phrase_relevance_resolution(docs, doc_keywords_dict)
         yield QueryMessage("Generating document summaries...")
-        doc_terms    = perform_document_keyterm_extraction(inter)
+        doc_terms    = perform_document_keyterm_extraction(docs)
 
         # Assemble output 
         yield QueryMessage("Assembling date information...")
@@ -406,14 +409,14 @@ if __name__ == "__main__":
     session = Session(bind = engine)
 
     qq = QueryQueue(engine)
-    om = EmailProcessor()
+    pm = EmailProcessor()
     for uq_id in qq:
-        user_query = session.user_query(UserQuery).get(uq_id)
+        user_query = session.query(UserQuery).get(uq_id)
         if user_query is None:
             logging.error("Query with id '%d' not found!" % (uq_id,))
             sys.exit(1)
         try:    
-            for msg in process_user_query(uq_id, user_query.text):
+            for msg in process_query(user_query.text, uq_id):
                 user_query.message = msg.message 
                 logging.info(msg.message)
                 session.commit()

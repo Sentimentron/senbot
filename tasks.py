@@ -155,7 +155,6 @@ class ProdDocPublished(DatabaseTask):
         # Certain date resolution
         sql = """SELECT certain_dates.date FROM certain_dates
         WHERE doc_id = %d
-        ORDER BY ABS(certain_dates.position-346)
         LIMIT 1""" % (document_id, ) 
         print sql 
         for date, in con.execute(sql):
@@ -165,7 +164,6 @@ class ProdDocPublished(DatabaseTask):
         # Uncertain date resolution
         sql = """SELECT uncertain_dates.date FROM uncertain_dates 
         WHERE doc_id = %d
-        ORDER BY ABS(uncertain_dates.position-307)
         LIMIT 1""" % (document_id, )
         print sql 
         for date, in con.execute(sql):
