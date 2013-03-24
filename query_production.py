@@ -209,10 +209,13 @@ def _combine_retrieved_documents(inter):
     prompt = False
     # If this is iterable, apply combine_retrieve_documents to all sublevels
     t = type(inter)
+    print inter
     if t is AndQuery or t is OrQuery or t is NotQuery:
         for c, i in enumerate(inter):
             if not hasattr(i, '__iter__'):
                 inter[c] = [i]
+            else:
+                inter[c] = list(flatten(_combine_retrieved_documents(i)))
         if t is AndQuery:
             inter = set.intersection(*[set(x) for x in inter])
         elif t is OrQuery:
