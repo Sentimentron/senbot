@@ -287,7 +287,7 @@ def output_to_s3_key(keyname, dates, sentiment, phrases,
         'keywords_set' : [word for word in expansions],
         'phrases_returned' : 0,
         'query_text': input_text, 
-        'query_time': time,
+        'query_time': round(time,1),
         'result_version': 2,
         'sentences_returned': 0,
         'using_keywords': int(len(keywords) > 0)
