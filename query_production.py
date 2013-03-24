@@ -68,7 +68,10 @@ class KeywordExpansionPlaceholder(AsyncPlaceholder):
 
     def resolve(self):
         expansions = super(KeywordExpansionPlaceholder, self).resolve() 
-        expansions = [QueryKeyword.from_str(i) for i in expansions]
+        if expansions is not None:
+            expansions = [QueryKeyword.from_str(i) for i in expansions]
+        else:
+            expansions = []
         expansions.append(self.original)
         return OrQuery(expansions)
 
@@ -94,7 +97,6 @@ def perform_keyword_docs_resolution(keyword):
     return KeywordDocResolutionPlaceholder(result)
 
 def perform_keywordlt_docs_resolution(keyword):
-    print type(keyword)
     if not isinstance(keyword, QueryKeywordModifier):
         return keyword 
 
@@ -206,10 +208,20 @@ def resolve_literal_documents(iterable, doc_keywords_dict):
 def _combine_retrieved_documents(inter):
     prompt = False
     # If this is iterable, apply combine_retrieve_documents to all sublevels
-    if isinstance(inter, Query):
-        inter = iterable.aggregate()
-    
-    if hasattr(inter, '__iter__'):
+    t = type(inter)
+    if t is AndQuery or t is OrQuery or t is NotQuery:
+        for c, i in enumerate(inter):
+            if not hasattr(i, '__iter__'):
+                inter[c] = [i]
+        if t is AndQuery:
+            inter = set.intersection(*[set(x) for x in inter])
+        elif t is OrQuery:
+            inter = set.union(*[set(x) for x in inter])
+        else:
+            inter = set.difference([set(x) for x in inter])
+
+        inter = [x for x in inter]
+    elif hasattr(inter, '__iter__'):
         prompt = True 
         inter = [_combine_retrieved_documents(i) for i in inter]
     else:
@@ -305,7 +317,6 @@ def output_to_s3_key(keyname, dates, sentiment, phrases,
             method = convert_date_method(method)
             date   = convert_date(date)
             pos_phrases, neg_phrases, pos_sentences, neg_sentences, label = sentiment[_id]
-            print phrases
             if _id in phrases:
                 rel_pos, rel_neg = phrases[_id]
             else:
