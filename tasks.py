@@ -152,34 +152,35 @@ class ProdDocPublished(DatabaseTask):
 
     def run(self, document_id):
         con = self.engine.connect() 
+        ret = (document_id, None, None)
+        sql = """SELECT articles.crawled FROM articles 
+            JOIN documents ON documents.article_id = articles.id 
+            WHERE documents.id = %d""" % (document_id,)
+        for crawled_date, in con.execute(sql):
+            ret = (document_id, "Crawled", crawled_date)
+        
         # Certain date resolution
         sql = """SELECT certain_dates.date FROM certain_dates
         WHERE doc_id = %d
-        LIMIT 1""" % (document_id, ) 
-        print sql 
+        ORDER BY ABS(certain_dates.position - 346)
+        LIMIT 5""" % (document_id, ) 
         for date, in con.execute(sql):
+            if date >= crawled_date:
+                continue    
             con.close()
             return document_id, "Certain", date 
 
         # Uncertain date resolution
         sql = """SELECT uncertain_dates.date FROM uncertain_dates 
         WHERE doc_id = %d
-        LIMIT 1""" % (document_id, )
-        print sql 
+        ORDER BY ABS(uncertain_dates.position - 307)
+        LIMIT 5""" % (document_id, )
         for date, in con.execute(sql):
             con.close()
             return document_id, "Uncertain", date 
 
-        sql = """SELECT articles.crawled FROM articles 
-            JOIN documents ON documents.article_id = articles.id 
-            WHERE documents.id = %d""" % (document_id,)
-        print sql
-        for date, in con.execute(sql):
-            con.close()
-            return document_id, "Crawled", date 
-
         con.close()
-        raise AssertionError("Shouldn't be here!")
+        return ret
 
 get_document_date = registry.tasks[ProdDocPublished.name]
 
