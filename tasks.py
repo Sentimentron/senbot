@@ -176,6 +176,8 @@ class ProdDocPublished(DatabaseTask):
         ORDER BY ABS(uncertain_dates.position - 307)
         LIMIT 5""" % (document_id, )
         for date, in con.execute(sql):
+            if date >= crawled_date:
+                continue
             con.close()
             return document_id, "Uncertain", date 
 
