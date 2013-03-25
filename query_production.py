@@ -209,28 +209,27 @@ def _combine_retrieved_documents(inter):
     prompt = False
     # If this is iterable, apply combine_retrieve_documents to all sublevels
     t = type(inter)
-    print inter
     if t is AndQuery or t is OrQuery or t is NotQuery:
         for c, i in enumerate(inter):
             if not hasattr(i, '__iter__'):
                 inter[c] = [i]
             else:
                 inter[c] = list(flatten(_combine_retrieved_documents(i)))
+        documents = [set(x) for x in inter]
+        print documents
         if t is AndQuery:
-            inter = set.intersection(*[set(x) for x in inter])
+            inter = set.intersection(*documents)
         elif t is OrQuery:
-            inter = set.union(*[set(x) for x in inter])
+            inter = set.union(*documents)
         else:
-            inter = set.difference([set(x) for x in inter])
+            inter = set.difference(*documents)
 
         inter = [x for x in inter]
     elif hasattr(inter, '__iter__'):
         prompt = True 
         inter = [_combine_retrieved_documents(i) for i in inter]
-    else:
-        prompt = False
 
-    return inter
+    return inter 
 
 def flatten(x):
     try:
@@ -380,6 +379,9 @@ def process_query(query_text, query_identifier):
         docs = set([i for i in combine_retrieved_documents(inter)])
         print docs
 
+        if len(docs) == 0:
+            raise QueryException("No documents returned.")
+
         # 
         # Build the document properties dict
         #
@@ -390,7 +392,7 @@ def process_query(query_text, query_identifier):
         sen_results  = perform_document_sentiment_resolution(docs)
         yield QueryMessage("Generating link summary...")
         link_results = perform_document_link_resolution(docs)
-        if len(doc_keywords_dict) > 0:
+        if len(expansions) > 0:
             yield QueryMessage("Requesting relevant phrases...")
             phrase_results = perform_phrase_relevance_resolution(docs, doc_keywords_dict)
         yield QueryMessage("Generating document summaries...")
@@ -401,8 +403,11 @@ def process_query(query_text, query_identifier):
         dates     = resolve_document_dates(date_results)
         yield QueryMessage("Assembling sentiment information...")
         sentiment = resolve_document_property(sen_results)
-        yield QueryMessage("Assembling relevant phrase information...")
-        phrases   = resolve_phrase_relevance(phrase_results)
+        if len(expansions) > 0:
+            yield QueryMessage("Assembling relevant phrase information...")
+            phrases   = resolve_phrase_relevance(phrase_results)
+        else:
+            phrases    = {} 
         yield QueryMessage("Assembling link information...")
         links, dm_map     = resolve_document_links(link_results)
         yield QueryMessage("Assembling document keywords...")
@@ -447,6 +452,8 @@ if __name__ == "__main__":
             logging.critical(except_type)
             logging.critical(except_class)
             logging.critical(ex)
+            user_query.message = ex.message
+            user_query.cancelled = True
             if user_query.email is not None:
                 pm.send_failure(user_query.email, ex.message)
             user_query.email = None
@@ -459,6 +466,8 @@ if __name__ == "__main__":
             if user_query.email is not None:
                 pm.send_failure(user_query.email, "General query engine error.")
             user_query.email = None
+            user_query.message = "Query engine error."
+            user_query.cancelled = True
             session.commit() 
         qq.set_completed(uq_id)
         break
