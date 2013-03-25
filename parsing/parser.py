@@ -14,7 +14,7 @@ domain.setParseAction(lambda s,l,t: QueryDomain(s,l,t))
 # Keyword parsing 
 raw_keyword 	= Word(string.letters + string.digits)
 quoted_keyword  = QuotedString("\"")
-potential_keywrd= raw_keyword | quoted_keyword
+potential_keywrd= Or(raw_keyword, quoted_keyword)
 literal_modifier= Literal("+")
 exclude_modifier= Literal("-")
 keyword_modifier= literal_modifier | exclude_modifier
@@ -37,15 +37,16 @@ potential_keywrd.setParseAction(lambda s,l,t: QueryKeyword(s,l,t))
 
 # Query parsing 
 query          = Forward()
-query_element  = Or([domain, keyword])
+subquery       = Forward()
+query_element  = Or([domain, keyword, subquery])
 and_condition  = Literal("AND")
 or_condition   = Literal("OR")
 join_condition = and_condition | or_condition
-and_query_run  = query_element + Suppress(and_condition) + query
-or_query_run   = query_element + Suppress(or_condition) + query 
+and_query_run  = query_element + Suppress(and_condition)
+or_query_run   = query_element + Suppress(or_condition)
 query_run      = or_query_run | and_query_run
 subquery       = Suppress(Literal('('))+query+Suppress(Literal(')'))
-query         << Or([Group(query_run) + query, Group(query_run), query_element, query_element + query, subquery + query, subquery])
+query         << Or([query_run + query, query_element, query_element+query])
 
 and_query_run.setParseAction(lambda s, l, t: AndQuery(t.asList()))
 or_query_run.setParseAction(lambda s, l, t: OrQuery(t.asList()))

@@ -214,9 +214,8 @@ def _combine_retrieved_documents(inter):
             if not hasattr(i, '__iter__'):
                 inter[c] = [i]
             else:
-                inter[c] = list(flatten(_combine_retrieved_documents(i)))
+                inter[c] = _combine_retrieved_documents(i)
         documents = [set(x) for x in inter]
-        print documents
         if t is AndQuery:
             inter = set.intersection(*documents)
         elif t is OrQuery:
@@ -358,7 +357,9 @@ def process_query(query_text, query_identifier):
         try:
             parsed = query.parseString(query_text).asList()
         except ParseException as ex:
-            raise QueryException("Parsing error: '%s'", ex)
+            raise QueryException("Parsing error: '%s'" % ex)
+
+        logging.info(parsed)
 
         # 
         # Document set resolution 
@@ -377,7 +378,7 @@ def process_query(query_text, query_identifier):
         inter = recursive_map(inter, lambda x: resolve_literal_documents(x, doc_keywords_dict))
         yield QueryMessage("Combining retrieved documents...")
         docs = set([i for i in combine_retrieved_documents(inter)])
-        print docs
+        logging.info(docs)
 
         if len(docs) == 0:
             raise QueryException("No documents returned.")

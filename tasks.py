@@ -94,6 +94,9 @@ class ProdKeywordDocsResolve(DatabaseTask):
 
     def run(self, keyword_id):
 
+        if keyword_id is None:
+            return keyword_id, set([])
+
         sql = """SELECT DISTINCT documents.id FROM documents 
         JOIN keyword_adjacencies ON keyword_adjacencies.doc_id = documents.id 
         WHERE key1_id = %d OR key2_id = %d""" % (keyword_id, keyword_id)
