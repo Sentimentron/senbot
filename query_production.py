@@ -207,15 +207,12 @@ def resolve_literal_documents(iterable, doc_keywords_dict):
 
 def _combine_retrieved_documents(inter):
     prompt = False
-    # If this is iterable, apply combine_retrieve_documents to all sublevels
     t = type(inter)
+    print inter
+    # If this is iterable, apply combine_retrieve_documents to all sublevels
     if t is AndQuery or t is OrQuery or t is NotQuery:
-        for c, i in enumerate(inter):
-            if not hasattr(i, '__iter__'):
-                inter[c] = [i]
-            else:
-                inter[c] = _combine_retrieved_documents(i)
-        documents = [set(x) for x in inter]
+        inter = [_combine_retrieved_documents(i) for i in inter]
+        documents = inter
         if t is AndQuery:
             inter = set.intersection(*documents)
         elif t is OrQuery:
@@ -223,10 +220,11 @@ def _combine_retrieved_documents(inter):
         else:
             inter = set.difference(*documents)
 
-        inter = [x for x in inter]
     elif hasattr(inter, '__iter__'):
         prompt = True 
-        inter = [_combine_retrieved_documents(i) for i in inter]
+        inter = set.union(*[_combine_retrieved_documents(i) for i in inter])
+    else:
+        return set([inter])
 
     return inter 
 
@@ -376,6 +374,7 @@ def process_query(query_text, query_identifier):
         inter = recursive_map(inter, perform_keywordlt_docs_resolution)
         inter = recursive_map(inter, lambda x: resolve_all_documents(x, doc_keywords_dict))
         inter = recursive_map(inter, lambda x: resolve_literal_documents(x, doc_keywords_dict))
+        raw_input(inter)
         yield QueryMessage("Combining retrieved documents...")
         docs = set([i for i in combine_retrieved_documents(inter)])
         logging.info(docs)
