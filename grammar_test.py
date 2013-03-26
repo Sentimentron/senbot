@@ -14,21 +14,15 @@ if __name__ == "__main__":
 		print f
 
 
-	print keyword.parseString("-\"Huffington Post\"")
-
-	for c, f in enumerate([keyword.parseString(x) for x in ["Huffington", "huffington",
-	"\"Huffington Post\"", "+\"huffington post\"", "-\"huffinton post\"", "-huffington"]]):
-		print c, f
 
 	queries = ["Barack Obama",
-	'"Barack Obama"',
-	"Barack AND Obama",
-	"+Barack AND Obama",
+	"Barack & Obama",
+	"+Barack & Obama",
 	"Barack Obama foxnews.com",
-	"Barack OR Obama",
-	"Barack Obama AND John McCain foxnews.com",
-	"(Barack OR Obama) AND (John AND McCain) foxnews.com",
-	"+Barack AND -\"McCain Oven Chips\" foxnews.com"]
+	"Barack & Obama",
+	"Barack Obama & John McCain foxnews.com",
+	"(Barack | Obama) & (John | McCain) foxnews.com",
+	"+Barack & -\"McCain Oven Chips\" foxnews.com"]
 	for c, q in enumerate(queries):
 		print c, q, query.parseString(q).asList()
 		print

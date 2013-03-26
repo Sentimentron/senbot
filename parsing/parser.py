@@ -41,17 +41,21 @@ potential_keywrd.setParseAction(lambda s,l,t: QueryKeyword(s,l,t))
 
 # Query parsing 
 query          = Forward()
-subquery       = Forward()
-query_element  = Or([domain, keyword, subquery])
-and_condition  = Literal("AND")
-or_condition   = Literal("OR")
+query_element  = Or([domain, keyword])
+and_condition  = Literal("&")
+or_condition   = Literal("|")
 join_condition = and_condition | or_condition
-and_query_run  = query_element + Suppress(and_condition)
-or_query_run   = query_element + Suppress(or_condition)
+and_query_run  = query_element + Suppress(and_condition) + query
+or_query_run   = query_element + Suppress(or_condition) + query
 query_run      = or_query_run | and_query_run
 subquery       = Suppress(Literal('('))+query+Suppress(Literal(')'))
-query         << Or([query_run + query, query_element, query_element+query])
+subqry_run_and = subquery + Suppress(and_condition) + query
+subqry_run_or  = subquery + Suppress(or_condition) + query
+subqry_run     = subqry_run_or | subqry_run_and
+query         << Or([query_run, subqry_run, query_element+query, subquery, query_element])
 
+subqry_run_and.setParseAction(lambda s, l, t: AndQuery(t.asList()))
+subqry_run_or.setParseAction(lambda s, l, t: OrQuery(t.asList()))
 and_query_run.setParseAction(lambda s, l, t: AndQuery(t.asList()))
 or_query_run.setParseAction(lambda s, l, t: OrQuery(t.asList()))
-query.setParseAction(lambda s, l, t: t.asList())
+query.setParseAction(lambda s, l, t: AndQuery(t.asList()))
