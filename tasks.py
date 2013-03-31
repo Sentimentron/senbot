@@ -33,6 +33,7 @@ class DatabaseTask(Task):
         self.engine = get_database_engine_string()
         self.engine = create_engine(self.engine, 
             pool_recycle=60*60,
+            pool_size=2,
             isolation_level="READ UNCOMMITTED")
 
 class ProdKWIdentityResolve(DatabaseTask):
