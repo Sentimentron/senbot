@@ -436,6 +436,8 @@ if __name__ == "__main__":
         if user_query is None:
             logging.error("Query with id '%d' not found!" % (uq_id,))
             sys.exit(1)
+        if user_query.fulfilled is not None:
+            continue 
         try:    
             for msg in process_query(user_query.text, uq_id):
                 user_query.message = msg.message 
