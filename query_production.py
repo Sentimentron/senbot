@@ -437,7 +437,7 @@ if __name__ == "__main__":
             logging.error("Query with id '%d' not found!" % (uq_id,))
             sys.exit(1)
         if user_query.fulfilled is not None:
-            logging.info("Query '%d' already fulfilled, skipping....", (uq_id,))
+            logging.info("Query '%d' already fulfilled, skipping....", (user_query.id))
             continue 
         try:    
             for msg in process_query(user_query.text, uq_id):
